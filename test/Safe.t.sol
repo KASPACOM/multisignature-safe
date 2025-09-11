@@ -3,13 +3,13 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {SafeL2} from "../src/SafeL2.sol";
-import {Safe} from "../src/Safe.sol";
-import {SafeProxyFactory} from "../src/proxies/SafeProxyFactory.sol";
-import {SafeProxy} from "../src/proxies/SafeProxy.sol";
-import {CompatibilityFallbackHandler} from "../src/handler/CompatibilityFallbackHandler.sol";
-import {ExampleTarget} from "./Set.sol";
-import {Enum} from "../src/libraries/Enum.sol";
+import {SafeL2} from "safe-smart-account/SafeL2.sol";
+import {Safe} from "safe-smart-account/Safe.sol";
+import {SafeProxyFactory} from "safe-smart-account/proxies/SafeProxyFactory.sol";
+import {SafeProxy} from "safe-smart-account/proxies/SafeProxy.sol";
+import {CompatibilityFallbackHandler} from "safe-smart-account/handler/CompatibilityFallbackHandler.sol";
+import {Counter} from "./Counter.sol";
+import {Enum} from "safe-smart-account/common/Enum.sol";
 
 contract SafeE2E is Test {
     uint256 internal ownerPk;
@@ -19,30 +19,27 @@ contract SafeE2E is Test {
     SafeProxyFactory internal factory;
     CompatibilityFallbackHandler internal handler;
 
-    Safe internal safe; // ABI для прокси
-    ExampleTarget internal target;
+    Safe internal safe;
+    Counter internal target;
 
     function setUp() public {
-        // генерим владельца
-        ownerPk = 0xA11CE; // произвольно для теста
+        ownerPk = 0xA11CE;
         owner = vm.addr(ownerPk);
 
-        // деплоим базу
         safeSingleton = new SafeL2();
         factory = new SafeProxyFactory();
         handler = new CompatibilityFallbackHandler();
 
-        // создаём Safe-proxy c владельцем owner и threshold=1
         address[] memory owners = new address[](1);
         owners[0] = owner;
 
         bytes memory initializer = abi.encodeWithSignature(
             "setup(address[],uint256,address,bytes,address,address,uint256,address)",
             owners,
-            1,                  // threshold
+            1,
             address(0),
             bytes(""),
-            address(handler),   // fallbackHandler
+            address(handler),
             address(0),
             0,
             address(0)
@@ -55,58 +52,43 @@ contract SafeE2E is Test {
         );
 
         safe = Safe(payable(address(proxy)));
-        target = new ExampleTarget();
+        target = new Counter();
     }
 
     function test_execTransaction_singleSig() public {
-        // готовим call на target.set(42)
-        address to = address(target);
-        uint256 value = 0;
         bytes memory data = abi.encodeWithSignature("set(uint256)", 42);
-        Enum.Operation operation = Enum.Operation.Call;
-        uint256 safeTxGas = 0;    // можно 0: Safe сам оценит
-        uint256 baseGas = 0;
-        uint256 gasPrice = 0;
-        address gasToken = address(0);
-        address refundReceiver = address(0);
-        uint256 nonce = safe.nonce();
 
-        // считаем хэш
         bytes32 txHash = safe.getTransactionHash(
-            to,
-            value,
+            address(target),
+            0,
             data,
-            operation,
-            safeTxGas,
-            baseGas,
-            gasPrice,
-            gasToken,
-            refundReceiver,
-            nonce
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            address(0),
+            safe.nonce()
         );
 
-        // подписываем владельцем
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPk, txHash);
 
-        // формат подписи: r(32) + s(32) + v(1)
         bytes memory sig = abi.encodePacked(r, s, v);
 
-        // выполняем
         bool success = safe.execTransaction(
-            to,
-            value,
+            address(target),
+            0,
             data,
-            operation,
-            safeTxGas,
-            baseGas,
-            gasPrice,
-            gasToken,
-            payable(refundReceiver),
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            payable(address(0)),
             sig
         );
         assertTrue(success, "execTransaction failed");
 
-        // проверяем эффект
         assertEq(target.value(), 42, "target value mismatch");
     }
 }

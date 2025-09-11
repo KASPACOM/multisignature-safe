@@ -1,0 +1,1 @@
+docker exec -it safe-forge-deploy-web-1 python manage.py createsuperuser

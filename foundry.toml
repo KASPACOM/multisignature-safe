@@ -5,21 +5,7 @@ libs = ["lib"]
 evm_version = 'berlin'
 optimizer = true
 optimizer_runs = 200
-via_ir = true
-
-# Auto detect libraries and link them
-# auto_detect_solc = false
-libraries = []
-
-# Enable FFI for scripts
-ffi = true
 
 [rpc_endpoints]
-# Add your custom RPC endpoint here
-# custom = "http://localhost:8545"
 
 [etherscan]
-# Add your etherscan API key here if needed
-# mainnet = { key = "YOUR_API_KEY" }
-
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
