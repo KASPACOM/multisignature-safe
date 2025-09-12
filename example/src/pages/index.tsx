@@ -8,20 +8,17 @@ import SafeOnChain, {
   SafeConnectionForm,
   SafeCreationForm
 } from '../lib/onchain'
-import { SafeManagement, UserProposals } from '../components'
+import { SafeManagement, ProposalsPage } from '../components'
 import SafeOffChain, { UniversalOperationResult } from '../lib/offchain'
 import { 
-  connectWallet, 
-  checkWalletConnection, 
   formatAddress, 
   formatEthValue,
   parseEthValue,
-  onAccountsChanged,
-  onChainChanged,
-  removeEventListeners,
   getNetworkConfig
 } from '../lib/safe-common'
 import { NETWORK_NAMES, NETWORK_COLORS, getSupportedNetworks, isNetworkSupported } from '../lib/constants'
+import { Network, WalletState, ConnectionStatus } from '../lib/network-types'
+import { networkProvider } from '../lib/network-provider'
 
 interface SafeInfo {
   address: string
@@ -67,37 +64,18 @@ interface SignatureResult {
   encodedPacked: string
 }
 
-interface CollectedSignature {
-  signer: string
-  signature: string
-}
-
-interface ExecutionResult {
-  hash: string
-  signaturesUsed: number
-  threshold: number
-}
 
 interface ApprovedHashInfo {
   txHash: string
   approvedCount: number
+  eip712Count: number           // Количество EIP-712 подписей
+  totalSignatures: number       // approvedCount + eip712Count
   totalOwners: number
   threshold: number
-  canExecute: boolean
+  canExecute: boolean          // totalSignatures >= threshold
   approvedOwners: string[]
 }
 
-interface ImportSignatureForm {
-  signerAddress: string
-  signature: string
-}
-
-interface ExternalTransactionForm {
-  contractAddress: string
-  functionSignature: string
-  functionParams: string[]
-  ethValue: string
-}
 
 interface UniversalTransactionForm {
   contractAddress: string
@@ -106,11 +84,18 @@ interface UniversalTransactionForm {
   ethValue: string
 }
 
+
 const SafeMultisigApp: React.FC = () => {
-  // Состояние подключения
-  const [signer, setSigner] = useState<ethers.Signer | null>(null)
+  // Состояние Network подключения
+  const [network, setNetwork] = useState<Network | null>(null)
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({ 
+    state: WalletState.NoProvider,
+    isLoading: false 
+  })
   const [userAddress, setUserAddress] = useState<string>('')
-  const [isConnecting, setIsConnecting] = useState(false)
+
+  // Состояние управления разделами
+  const [currentSection, setCurrentSection] = useState<'main' | 'proposals'>('main')
 
   // Состояние Safe
   const [safeInfo, setSafeInfo] = useState<SafeInfo | null>(null)
@@ -125,9 +110,6 @@ const SafeMultisigApp: React.FC = () => {
   const [showSafeManagement, setShowSafeManagement] = useState(!safeInfo)
   const [predictedSafeAddress, setPredictedSafeAddress] = useState<string>('')
   
-  // Состояние пропозалов пользователя
-  const [showUserProposals, setShowUserProposals] = useState(true)
-  const [userProposalsRefresh, setUserProposalsRefresh] = useState(0)
 
   const [transactionForm, setTransactionForm] = useState({
     to: '',
@@ -149,31 +131,8 @@ const SafeMultisigApp: React.FC = () => {
   // Результат подписи хеша
   const [signatureResult, setSignatureResult] = useState<SignatureResult | null>(null)
   
-  // Собранные подписи для выполнения транзакции
-  const [collectedSignatures, setCollectedSignatures] = useState<CollectedSignature[]>([])
-  
-  // Результат выполнения транзакции
-  const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null)
-  
   // Approved hash информация для транзакций
   const [approvedHashInfos, setApprovedHashInfos] = useState<Map<string, ApprovedHashInfo>>(new Map())
-  
-  // Форма для импорта подписей
-  const [importSignatureForm, setImportSignatureForm] = useState<ImportSignatureForm>({
-    signerAddress: '',
-    signature: ''
-  })
-  
-  // Режим импорта готовых подписей
-  const [showImportMode, setShowImportMode] = useState<boolean>(false)
-  
-  // Форма для внешней транзакции (функция с параметрами)
-  const [externalTransactionForm, setExternalTransactionForm] = useState<ExternalTransactionForm>({
-    contractAddress: '',
-    functionSignature: '',
-    functionParams: [''],
-    ethValue: '0'
-  })
 
   // Состояние загрузки
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({})
@@ -186,28 +145,46 @@ const SafeMultisigApp: React.FC = () => {
 
   // Инициализация при загрузке
   useEffect(() => {
+    // Подписываемся на изменения состояния NetworkProvider
+    const unsubscribe = networkProvider.onStatusChange((status: ConnectionStatus) => {
+      console.log('🔄 React: Обновление состояния:', status)
+      
+      setConnectionStatus(status)
+      
+      if (status.network) {
+        setNetwork(status.network)
+      } else {
+        setNetwork(null)
+      }
+      
+      if (status.account) {
+        setUserAddress(status.account)
+      } else {
+        setUserAddress('')
+        // Возвращаемся на главную секцию при отключении
+        setCurrentSection('main')
+      }
+    })
+
+    // Проверяем текущее состояние при загрузке
     initializeApp()
 
-    // Обработчики событий кошелька
-    onAccountsChanged(handleAccountsChanged)
-    onChainChanged(handleChainChanged)
-
     return () => {
-      removeEventListeners()
+      unsubscribe()
     }
   }, [])
 
-  // Обновление safeOnChain при изменении signer
+  // Обновление safeOnChain при изменении Network
   useEffect(() => {
-    if (signer) {
-      console.log('🔄 Создание нового SafeOnChain из-за изменения signer')
+    if (network) {
+      console.log('🔄 Создание нового SafeOnChain из-за изменения Network')
       
-      // Если был подключен Safe, нужно переподключиться с новым signer
+      // Если был подключен Safe, нужно переподключиться с новым Network
       const currentSafeAddress = safeInfo?.address
       const currentOwners = safeInfo?.owners
       const currentThreshold = safeInfo?.threshold
       
-      const newSafeOnChain = new SafeOnChain(signer)
+      const newSafeOnChain = new SafeOnChain(network)
       setSafeOnChain(newSafeOnChain)
       
       // Делаем SafeOnChain доступным глобально для отладки
@@ -216,10 +193,14 @@ const SafeMultisigApp: React.FC = () => {
         const w = window as any
         w.debugSafeOnChain = newSafeOnChain
         w.debugSafeOffChain = safeOffChain
+        w.debugNetwork = network
+        w.debugNetworkProvider = networkProvider
         
         console.log('🔧 Отладочные объекты доступны в консоли:')
         console.log('  - debugSafeOnChain - основной класс для блокчейн операций')
         console.log('  - debugSafeOffChain - класс для работы с STS и пропозалами')
+        console.log('  - debugNetwork - текущий Network объект')
+        console.log('  - debugNetworkProvider - NetworkProvider сервис')
       }
       
       // Если был подключенный Safe, автоматически переподключаемся
@@ -241,48 +222,37 @@ const SafeMultisigApp: React.FC = () => {
             setSafeInfo(null)
             setPendingTransactions([])
             setShowSafeManagement(true)
-            showError('Safe отключен из-за смены аккаунта. Переподключитесь.')
+            showError('Safe отключен из-за смены коннекта. Переподключитесь.')
           }
         }, 100)
       }
     } else {
       setSafeOnChain(null)
-      // При отключении signer очищаем все состояние Safe
+      // При отсутствии Network очищаем все состояние Safe
       setSafeInfo(null)
       setPendingTransactions([])
       setShowSafeManagement(true)
     }
-  }, [signer])
+  }, [network])
 
   // Инициализация приложения
   const initializeApp = async () => {
+    console.log('🚀 React: Инициализация приложения...')
+    
     try {
-      const connectedSigner = await checkWalletConnection()
-      if (connectedSigner) {
-        setSigner(connectedSigner)
-        const address = await connectedSigner.getAddress()
-        setUserAddress(address)
-      }
+      // Проверяем текущее состояние и попытаемся переподключиться
+      const currentNetwork = await networkProvider.refresh()
+      console.log('✅ React: Инициализация завершена:', {
+        hasNetwork: !!currentNetwork,
+        networkId: currentNetwork?.id?.toString()
+      })
     } catch (error) {
-      console.error('Ошибка инициализации:', error)
+      console.error('❌ React: Ошибка инициализации:', error)
     }
   }
 
-  // Обработчики событий кошелька
-  const handleAccountsChanged = async (accounts: string[]) => {
-    if (accounts.length === 0) {
-      setSigner(null)
-      setUserAddress('')
-      setSafeInfo(null)
-    } else {
-      await initializeApp()
-    }
-  }
-
-  const handleChainChanged = () => {
-    // Перезагружаем страницу при смене сети
-    window.location.reload()
-  }
+  // Обработчики событий кошелька (теперь через NetworkProvider)
+  // Не нужны - NetworkProvider обрабатывает это автоматически
 
   // Функции управления состоянием
   const setLoadingState = (key: string, value: boolean) => {
@@ -301,24 +271,22 @@ const SafeMultisigApp: React.FC = () => {
     setTimeout(() => setSuccess(''), 5000)
   }
 
-  // 1. Подключение кошелька
+
+  // 1. Подключение кошелька через NetworkProvider
   const handleConnectWallet = async () => {
-    setIsConnecting(true)
+    console.log('🚀 React: Попытка подключения кошелька...')
+    
     try {
-      const connectedSigner = await connectWallet()
-      setSigner(connectedSigner)
-      const address = await connectedSigner.getAddress()
-      setUserAddress(address)
-      showSuccess('Кошелек подключен успешно!')
+      const connectedNetwork = await networkProvider.connect()
+      showSuccess(`Кошелек подключен успешно! Сеть: ${connectedNetwork.id.toString()}`)
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Ошибка подключения')
     }
-    setIsConnecting(false)
   }
 
   // 2. Создание Safe с формой
   const handleCreateSafeWithForm = async (formData: SafeCreationForm) => {
-    if (!safeOnChain || !signer) {
+    if (!safeOnChain || !network) {
       showError('Подключите кошелек')
       return
     }
@@ -383,47 +351,10 @@ const SafeMultisigApp: React.FC = () => {
     setLoadingState('predictAddress', false)
   }
 
-  // Подключение к существующему Safe с формой
-  const handleConnectToSafeWithForm = async (formData: SafeConnectionForm) => {
-    if (!safeOnChain) {
-      showError('Подключите кошелек')
-      return
-    }
-
-    setLoadingState('connectSafe', true)
-    try {
-      console.log('🔌 Подключение к Safe с формой:', formData)
-      
-      // Подключаемся к Safe (SafeManager проверит существование автоматически)
-      await safeOnChain.connectToSafeWithForm(formData)
-      
-      // Получаем информацию о Safe
-      const safeData = await safeOnChain.getCurrentSafeInfo()
-      setSafeInfo({
-        address: safeData.address,
-        owners: safeData.owners,
-        threshold: safeData.threshold,
-        balance: safeData.balance,
-        nonce: safeData.nonce
-      })
-      
-      // Загружаем ожидающие транзакции (с улучшенной обработкой ошибок)
-      await loadPendingTransactions(formData.safeAddress)
-      
-      // Скрываем форму управления
-      setShowSafeManagement(false)
-      
-      showSuccess(`Подключен к Safe: ${formatAddress(formData.safeAddress)}`)
-    } catch (error) {
-      console.error('❌ Ошибка подключения к Safe:', error)
-      showError(error instanceof Error ? error.message : 'Ошибка подключения к Safe')
-    }
-    setLoadingState('connectSafe', false)
-  }
 
   // 3. Предложение транзакции
   const handleProposeTransaction = async () => {
-    if (!safeOnChain || !safeInfo || !signer) {
+    if (!safeOnChain || !safeInfo || !network) {
       showError('Safe не подключен')
       return
     }
@@ -441,8 +372,6 @@ const SafeMultisigApp: React.FC = () => {
       // Обновляем список транзакций
       await loadPendingTransactions(safeInfo.address)
       
-      // Обновляем пропозалы пользователя
-      refreshUserProposals()
       
       showSuccess(`Транзакция предложена успешно! Hash: ${formatAddress(safeTxHash)}`)
       
@@ -550,7 +479,7 @@ const SafeMultisigApp: React.FC = () => {
 
   // Подписание хеша транзакции
   const handleSignTransactionHash = async () => {
-    if (!universalResult || !signer || !safeOnChain || !safeInfo) {
+    if (!universalResult || !network || !safeOnChain || !safeInfo) {
       showError('Нет хеша для подписи, кошелек не подключен или Safe Manager недоступен')
       return
     }
@@ -562,7 +491,7 @@ const SafeMultisigApp: React.FC = () => {
       console.log('🖋️ Подписываем транзакцию через Protocol Kit (EIP-712):', universalResult.transactionHash)
 
       // Получаем адрес пользователя
-      const userAddress = await signer.getAddress()
+      const userAddress = await network.signer.getAddress()
       console.log('🔍 Пользовательский адрес:', userAddress)
       console.log('🔍 Хэш транзакции:', universalResult.transactionHash)
 
@@ -577,7 +506,7 @@ const SafeMultisigApp: React.FC = () => {
       console.log('📝 Подписываем транзакцию через Safe SDK (EIP-712)...')
       
       // Подписываем транзакцию и получаем подписанную версию
-      const signedSafeTransaction = await safeSdk.signTransaction(safeTransaction, 'eth_signTypedData')
+      const signedSafeTransaction = await safeSdk.signTransaction(safeTransaction)
       
       console.log('📊 Подписей в подписанной транзакции:', signedSafeTransaction.signatures.size)
       
@@ -629,8 +558,6 @@ const SafeMultisigApp: React.FC = () => {
           )
           console.log('✅ Транзакция успешно отправлена в STS!')
           
-          // Обновляем пропозалы пользователя
-          refreshUserProposals()
           
         } catch (stsError: any) {
           console.warn('⚠️ Не удалось отправить подписанную транзакцию в STS:', stsError)
@@ -662,303 +589,7 @@ const SafeMultisigApp: React.FC = () => {
     }
   }
 
-  // Добавление подписи в коллекцию
-  const addSignatureToCollection = async () => {
-    if (!signatureResult || !signer) {
-      showError('Нет подписи для добавления или кошелек не подключен')
-      return
-    }
 
-    try {
-      const signerAddress = await signer.getAddress()
-      
-      // Проверяем, не добавлена ли уже подпись от этого адреса
-      const existingSignature = collectedSignatures.find(s => s.signer.toLowerCase() === signerAddress.toLowerCase())
-      if (existingSignature) {
-        showError('Подпись от этого адреса уже добавлена')
-        return
-      }
-
-      const newSignature: CollectedSignature = {
-        signer: signerAddress,
-        signature: signatureResult.signature
-      }
-
-      setCollectedSignatures(prev => [...prev, newSignature])
-      
-      // Упрощенная логика без localStorage
-      
-      showSuccess(`✅ Подпись от ${signerAddress} добавлена в коллекцию`)
-      
-      console.log('📝 Добавлена подпись:', newSignature)
-
-    } catch (error: any) {
-      console.error('❌ Ошибка добавления подписи:', error)
-      showError(`Ошибка: ${error.message}`)
-    }
-  }
-
-  // Удаление подписи из коллекции
-  const removeSignatureFromCollection = (signer: string) => {
-    setCollectedSignatures(prev => prev.filter(s => s.signer !== signer))
-    
-    // Подпись удалена из коллекции (без localStorage)
-    
-    showSuccess(`✅ Подпись от ${signer} удалена`)
-  }
-
-  // Импорт готовой подписи
-  const importExternalSignature = async () => {
-    if (!importSignatureForm.signerAddress || !importSignatureForm.signature) {
-      showError('Заполните адрес подписанта и подпись')
-      return
-    }
-
-    try {
-      // Проверяем формат адреса
-      const normalizedAddress = ethers.getAddress(importSignatureForm.signerAddress)
-      
-      // Проверяем, не добавлена ли уже подпись от этого адреса
-      const existingSignature = collectedSignatures.find(s => s.signer.toLowerCase() === normalizedAddress.toLowerCase())
-      if (existingSignature) {
-        showError('Подпись от этого адреса уже добавлена')
-        return
-      }
-
-      // Проверяем формат подписи (должна начинаться с 0x и иметь правильную длину)
-      if (!importSignatureForm.signature.startsWith('0x') || importSignatureForm.signature.length !== 132) {
-        showError('Неверный формат подписи. Ожидается 0x + 130 символов')
-        return
-      }
-
-      const newSignature: CollectedSignature = {
-        signer: normalizedAddress,
-        signature: importSignatureForm.signature
-      }
-
-      setCollectedSignatures(prev => [...prev, newSignature])
-      
-      // Импортированная подпись добавлена в коллекцию (без localStorage)
-      
-      // Сбрасываем форму
-      setImportSignatureForm({
-        signerAddress: '',
-        signature: ''
-      })
-
-      showSuccess(`✅ Подпись от ${normalizedAddress} импортирована`)
-      
-      console.log('📥 Импортирована подпись:', newSignature)
-
-    } catch (error: any) {
-      console.error('❌ Ошибка импорта подписи:', error)
-      if (error.code === 'INVALID_ARGUMENT') {
-        showError('Неверный формат адреса Ethereum')
-      } else {
-        showError(`Ошибка импорта: ${error.message}`)
-      }
-    }
-  }
-
-  // Сброс формы импорта
-  const resetImportForm = () => {
-    setImportSignatureForm({
-      signerAddress: '',
-      signature: ''
-    })
-  }
-
-  // Включение режима импорта готовых подписей
-  const startImportMode = () => {
-    setShowImportMode(true)
-    setCollectedSignatures([])
-    setExecutionResult(null)
-    resetImportForm()
-    setExternalTransactionForm({
-      contractAddress: '',
-      functionSignature: '',
-      functionParams: [''],
-      ethValue: '0'
-    })
-    showSuccess('🔄 Режим импорта готовых подписей активирован')
-  }
-
-  // Выключение режима импорта
-  const stopImportMode = () => {
-    setShowImportMode(false)
-    setCollectedSignatures([])
-    setExecutionResult(null)
-    resetImportForm()
-    showSuccess('✅ Режим импорта деактивирован')
-  }
-
-  // Добавление параметра во внешнюю форму
-  const addExternalFunctionParam = () => {
-    setExternalTransactionForm(prev => ({
-      ...prev,
-      functionParams: [...prev.functionParams, '']
-    }))
-  }
-
-  // Удаление параметра из внешней формы
-  const removeExternalFunctionParam = (index: number) => {
-    setExternalTransactionForm(prev => ({
-      ...prev,
-      functionParams: prev.functionParams.filter((_, i) => i !== index)
-    }))
-  }
-
-  // Обновление параметра внешней формы
-  const updateExternalFunctionParam = (index: number, value: string) => {
-    setExternalTransactionForm(prev => ({
-      ...prev,
-      functionParams: prev.functionParams.map((param, i) => i === index ? value : param)
-    }))
-  }
-
-  // Выполнение внешней транзакции с готовыми подписями
-  const executeExternalTransaction = async () => {
-    if (!safeInfo || !safeOnChain || collectedSignatures.length === 0 || !externalTransactionForm.contractAddress || !externalTransactionForm.functionSignature) {
-      showError('Заполните адрес контракта, сигнатуру функции и добавьте подписи')
-      return
-    }
-
-    // Дополнительная проверка подключения SafeManager
-    if (!safeOnChain.isConnected()) {
-      console.log('⚠️ SafeManager не подключен, пытаемся переподключиться...')
-      try {
-        await safeOnChain.connectToSafeWithForm({
-          safeAddress: safeInfo.address,
-          owners: safeInfo.owners,
-          threshold: safeInfo.threshold
-        })
-        console.log('✅ SafeManager успешно переподключен для внешней транзакции')
-      } catch (reconnectError) {
-        console.error('❌ Не удалось переподключить SafeManager:', reconnectError)
-        showError('Ошибка переподключения к Safe. Попробуйте переподключиться вручную.')
-        return
-      }
-    }
-
-    setLoadingState('executeExternalTransaction', true)
-    setExecutionResult(null)
-
-    try {
-      console.log('🚀 Выполняем внешнюю транзакцию с подписями...')
-      
-      if (collectedSignatures.length < safeInfo.threshold) {
-        throw new Error(`Недостаточно подписей! Требуется: ${safeInfo.threshold}, собрано: ${collectedSignatures.length}`)
-      }
-
-      // Создаем UniversalFunctionCall из формы
-      const functionCall = {
-        contractAddress: externalTransactionForm.contractAddress,
-        functionSignature: externalTransactionForm.functionSignature,
-        functionParams: externalTransactionForm.functionParams,
-        value: externalTransactionForm.ethValue || '0'
-      }
-
-      console.log('📝 Параметры функции:', functionCall)
-
-      // Создаем хеш и выполняем транзакцию через SafeManager
-      const transactionResult = await safeOnChain.createUniversalTransactionHash(
-        functionCall
-      )
-
-      console.log('🎯 Созданная транзакция:', transactionResult.transactionHash)
-
-      // Подписи уже собраны в collectedSignatures (без localStorage)
-
-      // Выполняем транзакцию с готовыми подписями
-      // В новой архитектуре используем executeTransactionByHash
-      const result = await safeOnChain.executeTransactionByHash(
-        transactionResult.transactionHash,
-        safeOffChain
-      )
-
-      setExecutionResult({
-        hash: result,
-        signaturesUsed: collectedSignatures.length,
-        threshold: safeInfo.threshold
-      })
-
-      showSuccess(`✅ Внешняя транзакция успешно выполнена!
-        Хеш транзакции: ${result}`)
-
-      console.log('🎉 Внешняя транзакция выполнена:', result)
-
-    } catch (error: any) {
-      console.error('❌ Ошибка выполнения внешней транзакции:', error)
-      showError(`Ошибка выполнения: ${error.message}`)
-    }
-
-    setLoadingState('executeExternalTransaction', false)
-  }
-
-  // Выполнение транзакции с собранными подписями
-  const executeTransactionWithSignatures = async () => {
-    if (!universalResult || !safeInfo || !safeOnChain || collectedSignatures.length === 0) {
-      showError('Нет транзакции, Safe не подключен или нет собранных подписей')
-      return
-    }
-
-    // Дополнительная проверка подключения SafeManager
-    if (!safeOnChain.isConnected()) {
-      console.log('⚠️ SafeManager не подключен, пытаемся переподключиться...')
-      try {
-        await safeOnChain.connectToSafeWithForm({
-          safeAddress: safeInfo.address,
-          owners: safeInfo.owners,
-          threshold: safeInfo.threshold
-        })
-        console.log('✅ SafeManager успешно переподключен')
-      } catch (reconnectError) {
-        console.error('❌ Не удалось переподключить SafeManager:', reconnectError)
-        showError('Ошибка переподключения к Safe. Попробуйте переподключиться вручную.')
-        return
-      }
-    }
-
-    setLoadingState('executeTransaction', true)
-    setExecutionResult(null)
-
-    try {
-      console.log('🚀 Выполняем транзакцию с подписями...')
-      console.log('📊 Количество подписей:', collectedSignatures.length)
-      console.log('🎯 Threshold Safe:', safeInfo.threshold)
-
-      if (collectedSignatures.length < safeInfo.threshold) {
-        throw new Error(`Недостаточно подписей! Требуется: ${safeInfo.threshold}, собрано: ${collectedSignatures.length}`)
-      }
-
-      // Используем собранные подписи напрямую (без localStorage)
-
-      // SafeManager выполняет транзакцию по safeTxHash
-      // В новой архитектуре используем executeTransactionByHash  
-      const result = await safeOnChain.executeTransactionByHash(
-        universalResult.transactionHash,
-        safeOffChain
-      )
-
-      setExecutionResult({
-        hash: result,
-        signaturesUsed: collectedSignatures.length,
-        threshold: safeInfo.threshold
-      })
-
-      showSuccess(`✅ Транзакция успешно выполнена!
-        Хеш транзакции: ${result}
-        Использовано подписей: ${collectedSignatures.length}`)
-
-      console.log('🎉 Транзакция выполнена:', result)
-
-    } catch (error: any) {
-      console.error('❌ Ошибка выполнения транзакции:', error)
-      showError(`Ошибка выполнения: ${error.message}`)
-    }
-
-    setLoadingState('executeTransaction', false)
-  }
 
   // =============================================================================
   // APPROVED HASH WORKFLOW
@@ -966,7 +597,7 @@ const SafeMultisigApp: React.FC = () => {
 
   // Одобрение хэша транзакции владельцем
   const handleApproveTransactionHash = async (txInfo: TransactionInfo) => {
-    if (!safeOnChain || !safeInfo || !signer) {
+    if (!safeOnChain || !safeInfo || !network) {
       showError('Safe не подключен')
       return
     }
@@ -1000,7 +631,7 @@ const SafeMultisigApp: React.FC = () => {
 
   // Выполнение транзакции с pre-approved подписями
   const handleExecuteWithPreApprovals = async (txInfo: TransactionInfo) => {
-    if (!safeOnChain || !safeInfo || !signer) {
+    if (!safeOnChain || !safeInfo || !network) {
       showError('Safe не подключен')
       return
     }
@@ -1024,8 +655,6 @@ const SafeMultisigApp: React.FC = () => {
       
       await loadPendingTransactions(safeInfo.address)
       
-      // Обновляем пропозалы пользователя
-      refreshUserProposals()
       
       // Очищаем approved hash информацию для выполненной транзакции
       setApprovedHashInfos(prev => {
@@ -1053,11 +682,27 @@ const SafeMultisigApp: React.FC = () => {
       const totalOwners = safeInfo?.owners?.length || 0
       const threshold = safeInfo?.threshold || 1
       
+      // Пытаемся получить EIP-712 подписи из STS
+      let eip712Count = 0
+      try {
+        const txData = await safeOffChain.getTransaction(safeTxHash)
+        // В STS может храниться информация о подписях
+        eip712Count = txData.confirmations?.length || 0
+        console.log(`📊 EIP-712 подписей из STS для ${safeTxHash}:`, eip712Count)
+      } catch (error) {
+        console.warn('⚠️ Не удалось получить EIP-712 подписи из STS:', error)
+        eip712Count = 0
+      }
+      
+      const totalSignatures = approvedOwners.length + eip712Count
+      
       const approvalInfo = {
         approvedCount: approvedOwners.length,
+        eip712Count: eip712Count,
+        totalSignatures: totalSignatures,
         totalOwners: totalOwners,
         threshold: threshold,
-        canExecute: approvedOwners.length >= threshold,
+        canExecute: totalSignatures >= threshold,
         approvedOwners: approvedOwners
       }
       
@@ -1100,9 +745,6 @@ const SafeMultisigApp: React.FC = () => {
     })
     setUniversalResult(null)
     setSignatureResult(null)
-    setCollectedSignatures([])
-    setExecutionResult(null)
-    resetImportForm()
   }
 
   // Добавление параметра в форму
@@ -1131,7 +773,7 @@ const SafeMultisigApp: React.FC = () => {
 
   // 4. Подтверждение транзакции
   const handleConfirmTransaction = async (txInfo: TransactionInfo) => {
-    if (!safeOnChain || !safeInfo || !signer) {
+    if (!safeOnChain || !safeInfo || !network) {
       showError('Safe не подключен')
       return
     }
@@ -1153,8 +795,6 @@ const SafeMultisigApp: React.FC = () => {
       // Обновляем список транзакций
       await loadPendingTransactions(safeInfo.address)
       
-      // Обновляем пропозалы пользователя
-      refreshUserProposals()
       
       showSuccess('Транзакция подписана!')
     } catch (error) {
@@ -1165,7 +805,7 @@ const SafeMultisigApp: React.FC = () => {
 
   // 5. Выполнение транзакции
   const handleExecuteTransaction = async (txInfo: TransactionInfo) => {
-    if (!safeOnChain || !safeInfo || !signer) {
+    if (!safeOnChain || !safeInfo || !network) {
       showError('Safe не подключен')
       return
     }
@@ -1204,8 +844,6 @@ const SafeMultisigApp: React.FC = () => {
       })
       await loadPendingTransactions(safeInfo.address)
       
-      // Обновляем пропозалы пользователя
-      refreshUserProposals()
       
       showSuccess(`Транзакция выполнена! Hash: ${formatAddress(txHash)}`)
     } catch (error) {
@@ -1266,88 +904,13 @@ const SafeMultisigApp: React.FC = () => {
     setPendingTransactions([])
     setUniversalResult(null)
     setSignatureResult(null)
-    setCollectedSignatures([])
-    setExecutionResult(null)
     setPredictedSafeAddress('')
     setApprovedHashInfos(new Map()) // Очищаем approved hash информацию
     setShowSafeManagement(true)
     showSuccess('Отключено от Safe')
   }
 
-  // Обработка действий с пропозалами пользователя
-  const handleUserProposalAction = async (proposal: any, action: 'sign' | 'execute' | 'view') => {
-    console.log(`🎬 Действие с пропозалом пользователя: ${action}`, proposal.safeTxHash)
 
-    try {
-      switch (action) {
-        case 'sign':
-          if (!safeOnChain) {
-            showError('Safe Manager не инициализирован')
-            return
-          }
-          
-          // Подписываем пропозал через approve hash
-          const txData = await safeOffChain.getTransaction(proposal.safeTxHash)
-          const safeTransaction = await safeOnChain.createSafeTransaction({
-            to: txData.to,
-            value: ethers.formatEther(txData.value || '0'),
-            data: txData.data || '0x'
-          })
-          
-          await safeOnChain.approveTransactionHash(safeTransaction)
-          showSuccess('Пропозал подписан!')
-          
-          // Обновляем пропозалы пользователя и список ожидающих транзакций
-          setUserProposalsRefresh(prev => prev + 1)
-          if (safeInfo) {
-            await loadPendingTransactions(safeInfo.address)
-          }
-          break
-
-        case 'execute':
-          if (!safeOnChain) {
-            showError('Safe Manager не инициализирован')
-            return
-          }
-          
-          // Выполняем транзакцию через STS интеграцию  
-          const txHash = await safeOnChain.executeTransactionByHash(proposal.safeTxHash, safeOffChain)
-          showSuccess(`Пропозал выполнен! Hash: ${formatAddress(txHash)}`)
-          
-          // Обновляем состояние
-          setUserProposalsRefresh(prev => prev + 1)
-          if (safeInfo) {
-            const updatedSafeInfo = await safeOnChain.getCurrentSafeInfo()
-            setSafeInfo({
-              address: updatedSafeInfo.address,
-              owners: updatedSafeInfo.owners,
-              threshold: updatedSafeInfo.threshold,
-              balance: updatedSafeInfo.balance,
-              nonce: updatedSafeInfo.nonce
-            })
-            await loadPendingTransactions(safeInfo.address)
-          }
-          break
-
-        case 'view':
-          // Показываем детальную информацию о пропозале
-          console.log('📋 Детали пропозала:', proposal)
-          showSuccess('Детали пропозала выведены в консоль')
-          break
-
-        default:
-          console.warn('Неизвестное действие:', action)
-      }
-    } catch (error) {
-      console.error(`❌ Ошибка выполнения действия ${action}:`, error)
-      showError(error instanceof Error ? error.message : `Ошибка выполнения действия ${action}`)
-    }
-  }
-
-  // Обновление пропозалов пользователя
-  const refreshUserProposals = () => {
-    setUserProposalsRefresh(prev => prev + 1)
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -1362,6 +925,34 @@ const SafeMultisigApp: React.FC = () => {
           </p>
         </div>
 
+        {/* Навигация между разделами */}
+        {network && userAddress && (
+          <div className="mb-8 flex justify-center">
+            <div className="bg-white rounded-lg shadow p-1 flex">
+              <button
+                onClick={() => setCurrentSection('main')}
+                className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+                  currentSection === 'main'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                🏠 Главная
+              </button>
+              <button
+                onClick={() => setCurrentSection('proposals')}
+                className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+                  currentSection === 'proposals'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                📋 Мои пропозалы
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Сообщения */}
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg">
@@ -1375,19 +966,32 @@ const SafeMultisigApp: React.FC = () => {
           </div>
         )}
 
+        {/* ГЛАВНАЯ СЕКЦИЯ */}
+        {currentSection === 'main' && (
+          <>
         {/* Статус подключения */}
         <div className="mb-8 p-6 bg-white rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">Подключение</h2>
           
-          {!signer ? (
+          {connectionStatus.state !== WalletState.Connected ? (
             <div className="space-y-4">
               <button
                 onClick={handleConnectWallet}
-                disabled={isConnecting}
+                disabled={connectionStatus.isLoading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                {isConnecting ? 'Подключение...' : 'Подключить кошелек'}
+                {connectionStatus.isLoading ? 'Подключение...' : 'Подключить кошелек'}
               </button>
+              
+              {/* Показываем состояние подключения */}
+              {connectionStatus.state !== WalletState.NoProvider && (
+                <div className="text-sm text-gray-600">
+                  Состояние: {connectionStatus.state}
+                  {connectionStatus.error && (
+                    <div className="text-red-600 mt-1">{connectionStatus.error}</div>
+                  )}
+                </div>
+              )}
               
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Поддерживаемые сети:</h3>
@@ -1410,9 +1014,11 @@ const SafeMultisigApp: React.FC = () => {
           ):(
             <div className="space-y-4">
               <p>Подключен кошелек: {formatAddress(userAddress)}</p>
+              
             </div>
           )}
         </div>
+
 
         {/* Информация о Safe */}
         {safeInfo && (
@@ -1420,16 +1026,6 @@ const SafeMultisigApp: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Информация о Safe</h2>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setShowUserProposals(!showUserProposals)}
-                  className={`px-4 py-2 rounded-lg transition-colors text-sm ${
-                    showUserProposals 
-                      ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {showUserProposals ? '👁️ Скрыть пропозалы' : '📋 Показать пропозалы'}
-                </button>
                 <button
                   onClick={() => setShowSafeManagement(true)}
                   className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
@@ -1471,308 +1067,17 @@ const SafeMultisigApp: React.FC = () => {
               </ul>
             </div>
 
-            {/* Кнопка активации режима импорта */}
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <h3 className="text-lg font-medium mb-3">🚀 Действия с транзакциями:</h3>
-              <div className="flex flex-wrap gap-3">
-                {!showImportMode ? (
-                  <button
-                    onClick={startImportMode}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
-                  >
-                    📥 Импортировать готовые подписи
-                  </button>
-                ) : (
-                  <button
-                    onClick={stopImportMode}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium"
-                  >
-                    ❌ Отменить импорт
-                  </button>
-                )}
-                <p className="text-sm text-gray-600 flex items-center">
-                  {showImportMode 
-                    ? '🔄 Режим импорта готовых подписей активен' 
-                    : 'Используйте если у вас уже есть подписанные хеши транзакций'
-                  }
-                </p>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* Режим импорта готовых подписей */}
-        {showImportMode && safeInfo && (
-          <div className="mb-8 p-6 bg-purple-50 border-2 border-purple-200 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">📥 Импорт готовых подписей и выполнение транзакции</h2>
-            <p className="text-gray-700 mb-6">
-              Укажите функцию для вызова, затем импортируйте готовые подписи и выполните транзакцию.
-            </p>
 
-            {/* Форма данных функции */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">🎯 Данные вызова функции:</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Адрес контракта:
-                  </label>
-                  <input
-                    type="text"
-                    value={externalTransactionForm.contractAddress}
-                    onChange={(e) => setExternalTransactionForm(prev => ({ ...prev, contractAddress: e.target.value }))}
-                    placeholder="0x1234567890123456789012345678901234567890"
-                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ETH Value:
-                  </label>
-                  <input
-                    type="text"
-                    value={externalTransactionForm.ethValue}
-                    onChange={(e) => setExternalTransactionForm(prev => ({ ...prev, ethValue: e.target.value }))}
-                    placeholder="0"
-                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Сигнатура функции:
-                </label>
-                <input
-                  type="text"
-                  value={externalTransactionForm.functionSignature}
-                  onChange={(e) => setExternalTransactionForm(prev => ({ ...prev, functionSignature: e.target.value }))}
-                  placeholder="transfer(address,uint256)"
-                  className="w-full p-2 border border-gray-300 rounded-lg text-sm font-mono"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Формат: functionName(type1,type2,...)
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Параметры функции:
-                  </label>
-                  <button
-                    onClick={addExternalFunctionParam}
-                    type="button"
-                    className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
-                  >
-                    + Добавить параметр
-                  </button>
-                </div>
-                
-                {externalTransactionForm.functionParams.map((param, index) => (
-                  <div key={index} className="flex items-center gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={param}
-                      onChange={(e) => updateExternalFunctionParam(index, e.target.value)}
-                      placeholder={`Параметр ${index + 1}`}
-                      className="flex-1 p-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                    {externalTransactionForm.functionParams.length > 1 && (
-                      <button
-                        onClick={() => removeExternalFunctionParam(index)}
-                        type="button"
-                        className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
-                      >
-                        ❌
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <p className="text-xs text-gray-500 mt-1">
-                  Введите параметры в том порядке, в котором они указаны в сигнатуре функции
-                </p>
-              </div>
-            </div>
-
-            {/* Форма импорта подписей */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">📝 Импорт подписей:</h3>
-              <div className="p-4 bg-white border border-gray-200 rounded-lg">
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Адрес подписанта:
-                    </label>
-                    <input
-                      type="text"
-                      value={importSignatureForm.signerAddress}
-                      onChange={(e) => setImportSignatureForm(prev => ({ ...prev, signerAddress: e.target.value }))}
-                      placeholder="0x1234567890123456789012345678901234567890"
-                      className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Подпись:
-                    </label>
-                    <textarea
-                      value={importSignatureForm.signature}
-                      onChange={(e) => setImportSignatureForm(prev => ({ ...prev, signature: e.target.value }))}
-                      placeholder="0x1234567890abcdef... (132 символа)"
-                      rows={2}
-                      className="w-full p-2 border border-gray-300 rounded-lg text-sm font-mono"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={importExternalSignature}
-                      disabled={!importSignatureForm.signerAddress || !importSignatureForm.signature}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
-                    >
-                      📝 Добавить подпись
-                    </button>
-                    <button
-                      onClick={resetImportForm}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                    >
-                      🔄 Очистить
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Список собранных подписей */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">
-                📋 Собранные подписи ({collectedSignatures.length} из {safeInfo.threshold}):
-              </h3>
-              
-              {collectedSignatures.length === 0 ? (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-yellow-800 text-sm">
-                    🔍 Подписи пока не добавлены. Используйте форму выше для импорта подписей.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {collectedSignatures.map((sig, index) => (
-                    <div key={sig.signer} className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium text-green-900 text-sm mb-1">
-                            👤 Подписант #{index + 1}: {sig.signer}
-                          </div>
-                          <div className="font-mono text-xs text-green-700 break-all">
-                            🔐 {sig.signature.slice(0, 20)}...{sig.signature.slice(-10)}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => removeSignatureFromCollection(sig.signer)}
-                          className="ml-3 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-xs"
-                          title="Удалить подпись"
-                        >
-                          ❌
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Кнопка выполнения */}
-            <div className="mb-6">
-              <button
-                onClick={executeExternalTransaction}
-                               disabled={
-                 loading.executeExternalTransaction || 
-                 collectedSignatures.length < safeInfo.threshold ||
-                 !externalTransactionForm.contractAddress ||
-                 !externalTransactionForm.functionSignature
-               }
-                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
-              >
-                {loading.executeExternalTransaction ? 'Выполнение...' : '🚀 Выполнить транзакцию с импортированными подписями'}
-              </button>
-              
-              {collectedSignatures.length < safeInfo.threshold && (
-                <p className="mt-2 text-sm text-gray-500">
-                  Недостаточно подписей: {collectedSignatures.length} из {safeInfo.threshold} требуемых
-                </p>
-              )}
-              
-              {(!externalTransactionForm.contractAddress || !externalTransactionForm.functionSignature) && (
-                <p className="mt-2 text-sm text-gray-500">
-                  Заполните обязательные поля: адрес контракта и сигнатуру функции
-                </p>
-              )}
-            </div>
-
-            {/* Результат выполнения */}
-            {executionResult && (
-              <div className="p-4 bg-green-50 rounded-lg">
-                <h3 className="font-semibold text-green-900 mb-4">🎉 Транзакция успешно выполнена!</h3>
-                
-                <div className="space-y-3">
-                  <div>
-                    <label className="font-medium text-gray-700 mb-2 block">
-                      🔗 Хеш транзакции:
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 p-3 bg-white border rounded-lg font-mono text-sm break-all">
-                        {executionResult.hash}
-                      </div>
-                      <button
-                        onClick={() => copyToClipboard(executionResult.hash, 'Хеш транзакции')}
-                        className="px-3 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
-                        title="Скопировать хеш"
-                      >
-                        📋
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <span className="font-medium text-gray-700">Использовано подписей:</span>
-                      <span className="ml-2 text-green-600">{executionResult.signaturesUsed}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">Требуется threshold:</span>
-                      <span className="ml-2 text-green-600">{executionResult.threshold}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Пропозалы пользователя */}
-        {signer && safeInfo && showUserProposals && (
-          <div className="mb-8">
-            <UserProposals
-              userAddress={userAddress}
-              onProposalAction={handleUserProposalAction}
-              refreshTrigger={userProposalsRefresh}
-              className=""
-            />
-          </div>
-        )}
 
         {/* Управление Safe */}
-        {signer && showSafeManagement && (
+        {network && showSafeManagement && (
           <SafeManagement
-            onConnect={handleConnectToSafeWithForm}
             onCreate={handleCreateSafeWithForm}
             onPredict={handlePredictSafeAddress}
-            loading={loading.createSafe || loading.connectSafe}
+            loading={loading.createSafe}
             predicting={loading.predictAddress}
             predictedAddress={predictedSafeAddress}
             userAddress={userAddress}
@@ -1780,33 +1085,8 @@ const SafeMultisigApp: React.FC = () => {
           />
         )}
 
-        {/* Быстрое переподключение к созданному Safe */}
-        {signer && !safeInfo && lastCreatedSafeAddress && showSafeManagement && (
-          <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-green-900 mb-1">🚀 Переподключение к созданному Safe</h3>
-                <p className="text-sm text-green-800">
-                  Адрес: <code className="bg-white px-2 py-1 rounded text-xs">{formatAddress(lastCreatedSafeAddress)}</code>
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  // Мы не можем использовать handleConnectToSafe(старый метод) из-за отсутствия параметров
-                  showError('Пожалуйста, используйте форму подключения с указанием владельцев и порога')
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-              >
-                🔄 Переподключиться
-              </button>
-            </div>
-            <p className="mt-2 text-xs text-green-700">
-              ℹ️ Для подключения укажите владельцев и порог в форме выше
-            </p>
-          </div>
-        )}
 
-        {signer && safeInfo && (
+        {network && safeInfo && (
           <div className="space-y-8">
             {/* Шаги 2-4: Доступны только когда Safe подключен */}
 
@@ -2094,22 +1374,26 @@ const SafeMultisigApp: React.FC = () => {
                                   </button>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
                                   <div>
-                                    <span className="font-medium text-gray-700">Одобрения:</span>
+                                    <span className="font-medium text-gray-700">Всего подписей:</span>
                                     <span className={`ml-2 font-semibold ${approvalInfo.canExecute ? 'text-green-600' : 'text-orange-600'}`}>
-                                      {approvalInfo.approvedCount} / {approvalInfo.threshold}
+                                      {approvalInfo.totalSignatures} / {approvalInfo.threshold}
                                     </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-gray-700">Approved:</span>
+                                    <span className="ml-2 text-blue-600">{approvalInfo.approvedCount}</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-gray-700">EIP-712:</span>
+                                    <span className="ml-2 text-purple-600">{approvalInfo.eip712Count}</span>
                                   </div>
                                   <div>
                                     <span className="font-medium text-gray-700">Статус:</span>
                                     <span className={`ml-2 ${approvalInfo.canExecute ? 'text-green-600' : 'text-orange-600'}`}>
-                                      {approvalInfo.canExecute ? '✅ Готово к выполнению' : '⏳ Требуются одобрения'}
+                                      {approvalInfo.canExecute ? '✅ Готово' : '⏳ Нужно еще'}
                                     </span>
-                                  </div>
-                                  <div>
-                                    <span className="font-medium text-gray-700">Владельцев:</span>
-                                    <span className="ml-2 text-gray-600">{approvalInfo.totalOwners}</span>
                                   </div>
                                 </div>
                                 
@@ -2155,7 +1439,7 @@ const SafeMultisigApp: React.FC = () => {
                                       disabled={loading[`execute_preapproved_${tx.safeTxHash}`]}
                                       className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
                                     >
-                                      {loading[`execute_preapproved_${tx.safeTxHash}`] ? 'Выполнение...' : '🏆 Выполнить (Approved Hash)'}
+                                      {loading[`execute_preapproved_${tx.safeTxHash}`] ? 'Выполнение...' : '🚀 Выполнить транзакцию'}
                                     </button>
                                   )}
 
@@ -2196,19 +1480,38 @@ const SafeMultisigApp: React.FC = () => {
                     </button>
                   </div>
                   
-                  {/* Информационная панель approved hash */}
+                  {/* Информационная панель universal signature workflow */}
                   <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                    <h3 className="font-medium text-purple-900 mb-2">💡 Approved Hash Workflow</h3>
+                    <h3 className="font-medium text-purple-900 mb-2">💡 Универсальная система подписей</h3>
                     <div className="text-sm text-purple-800 space-y-1">
-                      <p><strong>1️⃣ Одобрение:</strong> Владельцы нажимают "📝 Одобрить хэш" для транзакции</p>
-                      <p><strong>2️⃣ Проверка:</strong> Используйте "🔄 Проверить одобрения" чтобы увидеть текущий статус</p>
-                      <p><strong>3️⃣ Выполнение:</strong> Когда набрано {safeInfo?.threshold || 'N'} одобрений, любой может нажать "🏆 Выполнить (Approved Hash)"</p>
-                      <p><strong>⚡ Преимущество:</strong> Газ за выполнение платит только один человек!</p>
+                      <p><strong>📝 EIP-712:</strong> Подпись через кошелек (MetaMask) - создается мгновенно</p>
+                      <p><strong>✅ Approved Hash:</strong> Подпись через блокчейн транзакцию - требует газ</p>
+                      <p><strong>🔢 Комбинирование:</strong> Система автоматически считает EIP-712 + Approved = Общие подписи</p>
+                      <p><strong>🚀 Выполнение:</strong> Когда общих подписей ≥ {safeInfo?.threshold || 'N'}, любой может выполнить транзакцию</p>
+                      <p><strong>⚡ Гибкость:</strong> Можно смешивать оба типа подписей для достижения threshold!</p>
                     </div>
                   </div>
                 </div>
           </div>
         )}
+          </>
+        )}
+
+        {/* РАЗДЕЛ УПРАВЛЕНИЯ ПРОПОЗАЛАМИ */}
+        {currentSection === 'proposals' && (
+          <ProposalsPage
+            network={network}
+            userAddress={userAddress}
+            safeOnChain={safeOnChain}
+            safeOffChain={safeOffChain}
+            safeInfo={safeInfo}
+            setSafeInfo={setSafeInfo}
+            showError={showError}
+            showSuccess={showSuccess}
+            loadPendingTransactions={loadPendingTransactions}
+          />
+        )}
+
       </div>
     </div>
   )
