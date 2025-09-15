@@ -263,18 +263,19 @@ const UserProposals: React.FC<UserProposalsProps> = ({
       
       // После успешного действия запускаем точечное обновление пропозала
       if (action === ProposalAction.SIGN || action === ProposalAction.EXECUTE) {
+        // Всегда обновляем конкретный пропозал
+        setTimeout(() => {
+          updateSingleProposal(proposal.safeTxHash, 
+            action === ProposalAction.EXECUTE ? 4 : 3, // Больше попыток для execute
+            action === ProposalAction.EXECUTE ? 2000 : 1500 // Больше интервал для execute
+          )
+        }, action === ProposalAction.EXECUTE ? 1000 : 500)
+        
+        // Дополнительно вызываем обновление статистики (если предоставлено)
         if (onSingleProposalUpdate) {
           setTimeout(() => {
             onSingleProposalUpdate(proposal.safeTxHash)
-          }, action === ProposalAction.EXECUTE ? 1000 : 500) // Больше задержки для execute
-        } else {
-          // Если нет внешней функции обновления, используем локальную
-          setTimeout(() => {
-            updateSingleProposal(proposal.safeTxHash, 
-              action === ProposalAction.EXECUTE ? 4 : 3, // Больше попыток для execute
-              action === ProposalAction.EXECUTE ? 2000 : 1500 // Больше интервал для execute
-            )
-          }, action === ProposalAction.EXECUTE ? 1000 : 500)
+          }, action === ProposalAction.EXECUTE ? 1500 : 1000) // С небольшой задержкой после обновления пропозала
         }
       }
     } finally {
