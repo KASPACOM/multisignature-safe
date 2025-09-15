@@ -159,48 +159,6 @@ export class SafeOffChain {
     }
   }
 
-  // Простое предложение транзакции в STS (без автоматической регистрации)
-  async proposeTransaction(params: ProposeTransactionParams): Promise<void> {
-    if (!this.apiKit) {
-      throw new Error('STS недоступен')
-    }
-
-    try {
-      const proposeTransactionProps: ProposeTransactionProps = {
-        safeAddress: params.safeAddress,
-        safeTransactionData: params.safeTransaction.data,
-        safeTxHash: params.safeTxHash,
-        senderAddress: params.senderAddress,
-        senderSignature: params.senderSignature,
-        origin: params.origin || 'Safe Multisig Example'
-      }
-
-      await this.apiKit.proposeTransaction(proposeTransactionProps)
-      console.log('✅ Транзакция предложена в STS с хешем:', params.safeTxHash)
-    } catch (error) {
-      console.error('❌ Ошибка предложения транзакции:', error)
-      throw error
-    }
-  }
-
-  // Подтверждение транзакции (добавление подписи)
-  async confirmTransaction(params: ConfirmTransactionParams): Promise<void> {
-    if (!this.apiKit) {
-      throw new Error('STS недоступен')
-    }
-
-    try {
-      await this.apiKit.confirmTransaction(
-        params.safeTxHash,
-        params.signature
-      )
-      console.log('Подпись добавлена для транзакции:', params.safeTxHash)
-    } catch (error) {
-      console.error('Ошибка подтверждения транзакции:', error)
-      throw error
-    }
-  }
-
   // Получение транзакции из STS
   async getTransaction(safeTxHash: string) {
     if (!this.apiKit) {
@@ -256,78 +214,6 @@ export class SafeOffChain {
       return response
     } catch (error) {
       console.error('Ошибка получения транзакций:', error)
-      throw error
-    }
-  }
-
-  // Проверка статуса транзакции
-  async getTransactionStatus(safeTxHash: string): Promise<{
-    isExecuted: boolean
-    confirmationsCount: number
-    requiredConfirmations: number
-    canExecute: boolean
-  }> {
-    if (!this.apiKit) {
-      throw new Error('STS недоступен')
-    }
-
-    try {
-      const transaction = await this.getTransaction(safeTxHash)
-      const confirmationsCount = transaction.confirmations?.length || 0
-      const requiredConfirmations = transaction.confirmationsRequired || 1
-
-      return {
-        isExecuted: transaction.isExecuted,
-        confirmationsCount,
-        requiredConfirmations,
-        canExecute: confirmationsCount >= requiredConfirmations && !transaction.isExecuted
-      }
-    } catch (error: any) {
-      console.error('Ошибка проверки статуса:', error)
-      
-      // Если транзакция не найдена в STS, возвращаем значения по умолчанию
-      if (error.status === 404 || error.message?.includes('Not Found') || error.message?.includes('404')) {
-        console.log('⚠️ Транзакция не найдена в STS. Возвращаем статус по умолчанию.')
-        return {
-          isExecuted: false,
-          confirmationsCount: 0,
-          requiredConfirmations: 1,
-          canExecute: false
-        }
-      }
-      
-      throw error
-    }
-  }
-
-  // Получение подписей транзакции
-  async getTransactionSignatures(safeTxHash: string): Promise<{
-    [ownerAddress: string]: string
-  }> {
-    if (!this.apiKit) {
-      throw new Error('STS недоступен')
-    }
-
-    try {
-      const transaction = await this.getTransaction(safeTxHash)
-      const signatures: { [ownerAddress: string]: string } = {}
-
-      transaction.confirmations?.forEach(confirmation => {
-        if (confirmation.signature && confirmation.owner) {
-          signatures[confirmation.owner] = confirmation.signature
-        }
-      })
-
-      return signatures
-    } catch (error: any) {
-      console.error('Ошибка получения подписей:', error)
-      
-      // Если транзакция не найдена в STS, возвращаем пустой объект
-      if (error.status === 404 || error.message?.includes('Not Found') || error.message?.includes('404')) {
-        console.log('⚠️ Транзакция не найдена в STS. Возвращаем пустые подписи.')
-        return {}
-      }
-      
       throw error
     }
   }
@@ -462,46 +348,6 @@ export class SafeOffChain {
 
     // Применяем фильтры и сортировку
     return this.filterAndSortProposals(proposals, filter)
-  }
-
-  // Получение пропозалов, требующих подписи от пользователя  
-  async getUserPendingProposals(filter: UserProposalsFilter): Promise<UserProposal[]> {
-    console.log('⏳ Получаем пропозалы, требующие подписи от:', filter.userAddress)
-    
-    const allProposals = await this.getUserProposals({
-      ...filter,
-      executed: false, // Только неисполненные
-      requiresUserSignature: true // Только требующие подписи
-    })
-
-    // Фильтруем только те, где пользователь еще не подписал
-    const pendingProposals = allProposals.filter(proposal => {
-      const userHasSigned = proposal.confirmations.some(
-        conf => conf.owner.toLowerCase() === filter.userAddress.toLowerCase()
-      )
-      return !userHasSigned
-    })
-
-    console.log(`✅ Найдено ${pendingProposals.length} пропозалов, ожидающих подписи`)
-    return pendingProposals
-  }
-
-  // Получение пропозалов готовых к выполнению (достаточно подписей)
-  async getUserExecutableProposals(filter: UserProposalsFilter): Promise<UserProposal[]> {
-    console.log('🚀 Получаем готовые к выполнению пропозалы для:', filter.userAddress)
-    
-    const allProposals = await this.getUserProposals({
-      ...filter,
-      executed: false // Только неисполненные
-    })
-
-    // Фильтруем только те, где достаточно подписей для выполнения
-    const executableProposals = allProposals.filter(proposal => {
-      return proposal.confirmations.length >= proposal.confirmationsRequired
-    })
-
-    console.log(`✅ Найдено ${executableProposals.length} готовых к выполнению пропозалов`)
-    return executableProposals
   }
 
   // Получение статистики пропозалов пользователя

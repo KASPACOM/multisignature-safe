@@ -66,16 +66,6 @@ export class NetworkProvider {
     }
   }
 
-  // Получить текущее состояние
-  getCurrentStatus(): ConnectionStatus {
-    return { ...this.currentStatus }
-  }
-
-  // Получить текущую сеть (если подключена)
-  getCurrentNetwork(): Network | null {
-    return this.currentStatus.network || null
-  }
-
   // Обработка события и переход состояния
   private processEvent(event: WalletEvent) {
     console.log('🔄 NetworkProvider: Обработка события:', event.type, event)
@@ -361,16 +351,10 @@ export class NetworkProvider {
     return this.supportedNetworks.get(chainId)
   }
 
-  // Добавить поддерживаемую сеть
-  addSupportedNetwork(config: NetworkConfig) {
-    this.supportedNetworks.set(config.chainId, config)
-  }
-
   // Получить список поддерживаемых сетей
   getSupportedNetworks(): NetworkConfig[] {
     return Array.from(this.supportedNetworks.values())
   }
 }
 
-// Singleton instance
 export const networkProvider = new NetworkProvider()

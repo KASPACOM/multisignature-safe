@@ -3,20 +3,15 @@ import { ethers } from 'ethers'
 import { SafeTransaction } from '@safe-global/types-kit'
 
 import SafeOnChain, { 
-  TransactionParams, 
   UniversalFunctionCall,
-  SafeConnectionForm,
   SafeCreationForm
 } from '../lib/onchain'
 import { SafeManagement, ProposalsPage } from '../components'
-import SafeOffChain, { UniversalOperationResult } from '../lib/offchain'
+import SafeOffChain from '../lib/offchain'
 import { 
-  formatAddress, 
-  formatEthValue,
-  parseEthValue,
-  getNetworkConfig
+  formatAddress
 } from '../lib/safe-common'
-import { NETWORK_NAMES, NETWORK_COLORS, getSupportedNetworks, isNetworkSupported } from '../lib/constants'
+import { NETWORK_COLORS, getSupportedNetworks } from '../lib/constants'
 import { Network, WalletState, ConnectionStatus } from '../lib/network-types'
 import { networkProvider } from '../lib/network-provider'
 
@@ -349,38 +344,6 @@ const SafeMultisigApp: React.FC = () => {
       showError(error instanceof Error ? error.message : 'Ошибка предсказания адреса')
     }
     setLoadingState('predictAddress', false)
-  }
-
-
-  // 3. Предложение транзакции
-  const handleProposeTransaction = async () => {
-    if (!safeOnChain || !safeInfo || !network) {
-      showError('Safe не подключен')
-      return
-    }
-
-    if (!transactionForm.to || !ethers.isAddress(transactionForm.to)) {
-      showError('Введите корректный адрес получателя')
-      return
-    }
-
-    setLoadingState('propose', true)
-    try {
-      // Используем старую логику SafeOnChain.proposeTransaction (без STS дублирования)
-      const safeTxHash = await safeOnChain.proposeTransaction(transactionForm)
-
-      // Обновляем список транзакций
-      await loadPendingTransactions(safeInfo.address)
-      
-      
-      showSuccess(`Транзакция предложена успешно! Hash: ${formatAddress(safeTxHash)}`)
-      
-      // Очищаем форму
-      setTransactionForm({ to: '', value: '0', data: '0x' })
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Ошибка предложения транзакции')
-    }
-    setLoadingState('propose', false)
   }
 
   // Создание универсального хеша транзакции
@@ -910,8 +873,6 @@ const SafeMultisigApp: React.FC = () => {
     showSuccess('Отключено от Safe')
   }
 
-
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
@@ -1070,8 +1031,6 @@ const SafeMultisigApp: React.FC = () => {
           </div>
         )}
 
-
-
         {/* Управление Safe */}
         {network && showSafeManagement && (
           <SafeManagement
@@ -1084,7 +1043,6 @@ const SafeMultisigApp: React.FC = () => {
             className="mb-8"
           />
         )}
-
 
         {network && safeInfo && (
           <div className="space-y-8">

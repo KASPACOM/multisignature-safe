@@ -87,14 +87,4 @@ export const NETWORK_COLORS: Record<number, string> = {
   31337: '#4B5563'   // Anvil gray
 }
 
-// Примеры адресов для тестирования
-export const TEST_ADDRESSES = {
-  // Vitalik Buterin
-  vitalik: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
-  // Safe Treasury
-  safeTreasury: '0x8CF60B289f8d31F737049B590b5E4285Ff0Bd1D1',
-  // Уничтоженный адрес
-  burn: '0x000000000000000000000000000000000000dEaD'
-}
-
 export default NETWORK_CONFIGS

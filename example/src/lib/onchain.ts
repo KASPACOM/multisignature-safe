@@ -1,16 +1,14 @@
-import { BrowserProvider, Eip1193Provider, ethers } from 'ethers'
+import { ethers } from 'ethers'
 import { getSafeConfig } from './network-types'
 import Safe from '@safe-global/protocol-kit'
 import {
   SafeTransaction,
   MetaTransactionData,
-  SafeTransactionDataPartial
 } from '@safe-global/types-kit'
 import {
   SafeAccountConfig,
   PredictedSafeProps,
   SafeConfig,
-  ConnectSafeConfig
 } from '@safe-global/protocol-kit'
 
 import {
@@ -110,10 +108,6 @@ export class SafeOnChain {
 
   async getSignerAddress(): Promise<string> {
     return await this.network.signer.getAddress()
-  }
-
-  getCurrentNetwork(): Network {
-    return this.network
   }
 
   isConnected(): boolean {
@@ -250,16 +244,6 @@ export class SafeOnChain {
       throw error
     }
   }
-
-  // Создание нового Safe (старый метод для совместимости)
-  async createSafe(params: CreateSafeParams): Promise<Safe> {
-    const form: SafeCreationForm = {
-      owners: params.owners,
-      threshold: params.threshold
-    }
-    return this.createSafeWithForm(form)
-  }
-
 
   async connectToSafeWithForm(form: SafeConnectionForm): Promise<Safe> {
     console.log('🔌 Подключение к Safe с формой:')
@@ -543,153 +527,6 @@ export class SafeOnChain {
     return await safeSdk.getTransactionHash(safeTransaction)
   }
 
-  getSignatureFromTransaction(
-    safeTransaction: SafeTransaction,
-    signerAddress: string
-  ): string | undefined {
-    const signatures = safeTransaction.signatures
-    if (!signatures) return undefined
-
-    const signature = signatures.get(signerAddress.toLowerCase())
-    return signature ? ((typeof signature === 'object' && signature && 'data' in signature) ? String(signature.data) : String(signature)) : undefined
-  }
-
-  async executeTransaction(
-    safeTransaction: SafeTransaction
-  ): Promise<any> {
-    const safeSdk = this.getSafeSdk()
-    const safeAddress = this.getCurrentSafeAddress()
-
-    console.log('🚀 Выполнение транзакции Safe:', safeAddress)
-    const executeTxResponse = await safeSdk.executeTransaction(safeTransaction)
-
-    console.log('✅ Транзакция отправлена, хеш:', executeTxResponse.hash)
-
-    return {
-      hash: executeTxResponse.hash,
-      response: executeTxResponse
-    }
-  }
-
-  async executeTransactionWithSignatures(
-    safeTransaction: SafeTransaction,
-    signatures: Array<{
-      signer: string
-      signature: string
-    }>
-  ): Promise<any> {
-    console.log('🚀 Добавляем подписи и выполняем транзакцию...')
-
-    const safeSdk = this.getSafeSdk()
-    const safeAddress = this.getCurrentSafeAddress()
-
-    const actualOwners = await safeSdk.getOwners()
-
-    for (const sig of signatures) {
-      const isOwner = actualOwners.map(o => o.toLowerCase()).includes(sig.signer.toLowerCase())
-      if (!isOwner) {
-        throw new Error(`Адрес ${sig.signer} не является владельцем Safe! Владельцы: ${actualOwners.join(', ')}`)
-      }
-    }
-
-    const sortedSignatures = [...signatures].sort((a, b) => {
-      return a.signer.toLowerCase().localeCompare(b.signer.toLowerCase())
-    })
-
-    console.log('🔄 Сортировка подписей:', sortedSignatures.map(s => s.signer))
-
-    for (const sig of sortedSignatures) {
-      console.log(`📝 Добавляем подпись от ${sig.signer}:`, sig.signature.slice(0, 10) + '...')
-
-      const safeSignature = {
-        signer: sig.signer,
-        data: sig.signature,
-        isContractSignature: false,
-        staticPart: (dynamicOffset?: string) => sig.signature,
-        dynamicPart: () => ''
-      }
-
-      safeTransaction.addSignature(safeSignature)
-    }
-
-    console.log(`✅ Добавлено ${signatures.length} подписей`)
-    console.log('📊 Общее количество подписей:', safeTransaction.signatures.size)
-
-    const threshold = await safeSdk.getThreshold()
-    console.log(`🎯 Требуется подписей: ${threshold}, имеется: ${safeTransaction.signatures.size}`)
-
-    if (safeTransaction.signatures.size < threshold) {
-      throw new Error(`Недостаточно подписей! Требуется: ${threshold}, получено: ${safeTransaction.signatures.size}`)
-    }
-
-    console.log('🚀 Выполняем транзакцию...')
-    const executeTxResponse = await safeSdk.executeTransaction(safeTransaction)
-
-    console.log('✅ Транзакция отправлена! Хеш:', executeTxResponse.hash)
-
-    return {
-      hash: executeTxResponse.hash,
-      response: executeTxResponse,
-      signaturesUsed: signatures.length,
-      threshold: threshold
-    }
-  }
-
-  async createAndSignTransaction(transactions: Array<{ to: string, data: string, value?: string }>): Promise<SafeTransaction> {
-    const safeSdk = this.getSafeSdk()
-
-    console.log('📝 Создаем транзакцию через Safe SDK...')
-
-    const metaTransactions = transactions.map(tx => ({
-      to: tx.to,
-      data: tx.data,
-      value: tx.value || '0'
-    }))
-
-    const safeTransaction = await safeSdk.createTransaction({ transactions: metaTransactions })
-
-    console.log('✅ Транзакция создана, подписываем через EIP-712...')
-
-    await safeSdk.signTransaction(safeTransaction)
-
-    console.log('✅ Транзакция подписана EIP-712!')
-    console.log('📊 Подписей в транзакции:', safeTransaction.signatures.size)
-
-    return safeTransaction
-  }
-
-  async executeSignedTransaction(safeTransaction: SafeTransaction): Promise<any> {
-    const safeSdk = this.getSafeSdk()
-    const threshold = await safeSdk.getThreshold()
-
-    console.log(`🎯 Требуется подписей: ${threshold}, есть: ${safeTransaction.signatures.size}`)
-
-    if (safeTransaction.signatures.size < threshold) {
-      throw new Error(`Недостаточно подписей! Требуется: ${threshold}, есть: ${safeTransaction.signatures.size}`)
-    }
-
-    console.log('🚀 Выполняем подписанную транзакцию...')
-
-    const executeTxResponse = await safeSdk.executeTransaction(safeTransaction)
-
-    console.log('✅ Транзакция выполнена! Хэш:', executeTxResponse.hash)
-
-    return {
-      hash: executeTxResponse.hash,
-      response: executeTxResponse,
-      signaturesUsed: safeTransaction.signatures.size,
-      threshold: threshold
-    }
-  }
-
-  async createSignAndExecute(transactions: Array<{ to: string, data: string, value?: string }>): Promise<any> {
-    console.log('🔄 Полный цикл: создать -> подписать -> выполнить')
-
-    const signedTransaction = await this.createAndSignTransaction(transactions)
-
-    return await this.executeSignedTransaction(signedTransaction)
-  }
-
   async approveTransactionHash(safeTransaction: SafeTransaction): Promise<string> {
     const currentAddress = this.getCurrentSafeAddress()
     if (!currentAddress) {
@@ -728,87 +565,6 @@ export class SafeOnChain {
     console.log('👥 Владельцы одобрившие хэш:', approvedOwners)
     return approvedOwners
   }
-
-  async executeWithMixedSignatures(safeTransaction: SafeTransaction): Promise<any> {
-    const safeSdk = this.getSafeSdk()
-    const threshold = await safeSdk.getThreshold()
-
-    const txHash = await safeSdk.getTransactionHash(safeTransaction)
-    const approvedOwners = await this.checkApprovedOwners(txHash)
-
-    const existingSignatures = safeTransaction.signatures.size
-    const totalSignatures = existingSignatures + approvedOwners.length
-
-    console.log(`🎯 Требуется: ${threshold}`)
-    console.log(`📝 EIP-712 подписей: ${existingSignatures}`)
-    console.log(`✅ Approved hash: ${approvedOwners.length}`)
-    console.log(`🔢 Всего подписей: ${totalSignatures}`)
-
-    if (totalSignatures < threshold) {
-      throw new Error(`Недостаточно подписей! Требуется: ${threshold}, есть: ${totalSignatures} (EIP-712: ${existingSignatures}, approved: ${approvedOwners.length})`)
-    }
-
-    if (approvedOwners.length > 0) {
-      const sortedOwners = approvedOwners.sort((a, b) =>
-        a.toLowerCase().localeCompare(b.toLowerCase())
-      )
-
-      sortedOwners.forEach(owner => {
-        const approvedSignature = {
-          signer: owner.toLowerCase(),
-          data: `0x${owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
-          isContractSignature: false,
-          staticPart: () => `0x${owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
-          dynamicPart: () => ''
-        }
-
-        safeTransaction.addSignature(approvedSignature)
-      })
-
-      console.log('✅ Добавлены approved hash подписи')
-    }
-
-    console.log('🚀 Выполняем транзакцию с mixed подписями...')
-
-
-    const executeTxResponse = await safeSdk.executeTransaction(safeTransaction)
-
-    console.log('✅ Транзакция выполнена! Хэш:', executeTxResponse.hash)
-    return {
-      hash: executeTxResponse.hash,
-      response: executeTxResponse,
-      eip712Signatures: existingSignatures,
-      approvedHashSignatures: approvedOwners.length,
-      totalSignatures: totalSignatures,
-      threshold: threshold
-    }
-  }
-
-  async proposeTransaction(params: TransactionParams): Promise<string> {
-    console.log('📝 SafeOnChain: Предложение транзакции...')
-
-    if (!this.isConnected()) {
-      throw new Error('Safe не подключен')
-    }
-
-    try {
-      const safeTransaction = await this.createSafeTransaction(params)
-
-      const signedTransaction = await this.signTransaction(safeTransaction)
-
-      const safeTxHash = await this.getTransactionHash(signedTransaction)
-
-      await this.approveTransactionHash(signedTransaction)
-
-      console.log('✅ SafeOnChain: Транзакция предложена и одобрена:', safeTxHash)
-      return safeTxHash
-
-    } catch (error) {
-      console.error('❌ SafeOnChain: Ошибка предложения транзакции:', error)
-      throw error
-    }
-  }
-
 
   async executeTransactionByHash(safeTxHash: string, safeOffChain?: any): Promise<string> {
     console.log('🚀 SafeOnChain: Выполнение транзакции по хешу:', safeTxHash)
@@ -873,34 +629,6 @@ export class SafeOnChain {
 
     } catch (error) {
       console.error('❌ SafeOnChain: Ошибка выполнения по хешу:', error)
-      throw error
-    }
-  }
-
-  async getTransactionInfo(safeTxHash: string, safeOffChain?: any): Promise<any> {
-    if (!safeOffChain) {
-      throw new Error('Требуется SafeOffChain для получения информации о транзакции')
-    }
-
-    try {
-      const [txData, status] = await Promise.all([
-        safeOffChain.getTransaction(safeTxHash),
-        safeOffChain.getTransactionStatus(safeTxHash)
-      ])
-
-      return {
-        safeTxHash,
-        to: txData.to,
-        value: txData.value || '0',
-        data: txData.data || '0x',
-        nonce: parseInt(txData.nonce?.toString() || '0'),
-        isExecuted: status.isExecuted,
-        confirmationsCount: status.confirmationsCount,
-        requiredConfirmations: status.requiredConfirmations,
-        canExecute: status.canExecute
-      }
-    } catch (error) {
-      console.error('❌ SafeOnChain: Ошибка получения информации о транзакции:', error)
       throw error
     }
   }
