@@ -4,7 +4,7 @@ import { ethers } from 'ethers'
 import SafeOnChain, { 
   SafeConnectionForm,
 } from '../lib/onchain'
-import { UserProposals } from '../components'
+import UserProposals, { ProposalAction } from './UserProposals'
 import SafeOffChain from '../lib/offchain'
 import { 
   formatAddress, 
@@ -96,12 +96,12 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
   }
 
   // Обработка действий с пропозалами пользователя
-  const handleUserProposalAction = async (proposal: any, action: 'sign' | 'execute' | 'view') => {
+  const handleUserProposalAction = async (proposal: any, action: ProposalAction) => {
     console.log(`🎬 Действие с пропозалом пользователя: ${action}`, proposal.safeTxHash)
 
     try {
       switch (action) {
-        case 'sign':
+        case ProposalAction.SIGN:
           if (!safeOnChain) {
             showError('Safe Manager не инициализирован')
             return
@@ -147,25 +147,67 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
             console.log('✅ Уже подключены к нужному Safe для подписи')
           }
           
-          // Подписываем пропозал через approve hash
-          const txData = await safeOffChain.getTransaction(proposal.safeTxHash)
-          const safeTransaction = await safeOnChain.createSafeTransaction({
-            to: txData.to,
-            value: ethers.formatEther(txData.value || '0'),
-            data: txData.data || '0x'
-          })
+          // Подписываем пропозал через EIP-712 подпись
+          console.log('📝 Подписываем пропозал через EIP-712:', proposal.safeTxHash)
           
-          await safeOnChain.approveTransactionHash(safeTransaction)
-          showSuccess('Пропозал подписан!')
-          
-          // Обновляем пропозалы пользователя и список ожидающих транзакций
-          refreshUserProposals()
-          if (safeInfo && loadPendingTransactions) {
-            await loadPendingTransactions(safeInfo.address)
+          if (!network) {
+            showError('Network не подключен')
+            return
           }
+          
+          try {
+            // 1. Получаем данные транзакции из STS
+            const stsTransaction = await safeOffChain.getTransaction(proposal.safeTxHash)
+            
+            // 2. Восстанавливаем SafeTransaction из данных STS
+            const safeTransaction = await safeOnChain.createSafeTransaction({
+              to: stsTransaction.to,
+              value: stsTransaction.value || '0',
+              data: stsTransaction.data || '0x'
+            })
+            
+            // Устанавливаем nonce из STS
+            if (stsTransaction.nonce !== undefined) {
+              safeTransaction.data.nonce = parseInt(stsTransaction.nonce.toString())
+            }
+            
+            console.log('📝 Подписываем восстановленную транзакцию через Safe SDK (EIP-712)...')
+            
+            // 3. Подписываем транзакцию через Safe SDK (вызовет MetaMask)
+            const safeSdk = safeOnChain.getSafeSdk()
+            const signedSafeTransaction = await safeSdk.signTransaction(safeTransaction)
+            
+            // 4. Получаем адрес пользователя и его подпись
+            const userAddress = await network.signer.getAddress()
+            const userSignature = signedSafeTransaction.signatures.get(userAddress) ||
+              signedSafeTransaction.signatures.get(userAddress.toLowerCase()) ||
+              signedSafeTransaction.signatures.get(ethers.getAddress(userAddress))
+            
+            if (!userSignature) {
+              const availableKeys = Array.from(signedSafeTransaction.signatures.keys())
+              throw new Error(`Подпись не найдена для адреса ${userAddress}. Доступные: ${availableKeys.join(', ')}`)
+            }
+            
+            const signatureData = typeof userSignature === 'object' && userSignature && 'data' in userSignature
+              ? String(userSignature.data)
+              : String(userSignature)
+            
+            console.log('✅ EIP-712 подпись создана:', signatureData.slice(0, 20) + '...')
+            
+            // 5. Отправляем реальную подпись в STS
+            await safeOffChain.confirmTransaction(proposal.safeTxHash, signatureData)
+            showSuccess('✅ Пропозал подписан через EIP-712 и подтверждён в STS!')
+            
+          } catch (signError: any) {
+            console.error('❌ Ошибка подписи EIP-712:', signError)
+            showError(`Ошибка подписи: ${signError.message}`)
+            return
+          }
+          
+          // Точечное обновление пропозала произойдет автоматически через UserProposals
           break
 
-        case 'execute':
+        case ProposalAction.EXECUTE:
           if (!safeOnChain) {
             showError('Safe Manager не инициализирован')
             return
@@ -215,9 +257,10 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
           const txHash = await safeOnChain.executeTransactionByHash(proposal.safeTxHash, safeOffChain)
           showSuccess(`Пропозал выполнен! Hash: ${formatAddress(txHash)}`)
           
-          // Обновляем состояние
-          refreshUserProposals()
+          // Точечное обновление пропозала произойдет автоматически через UserProposals
+          
           if (safeInfo) {
+            // Обновляем информацию о Safe сразу
             const updatedSafeInfo = await safeOnChain.getCurrentSafeInfo()
             setSafeInfo({
               address: updatedSafeInfo.address,
@@ -226,13 +269,17 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
               balance: updatedSafeInfo.balance,
               nonce: updatedSafeInfo.nonce
             })
+            
+            // Обновляем список транзакций с задержкой
             if (loadPendingTransactions) {
-              await loadPendingTransactions(safeInfo.address)
+              setTimeout(async () => {
+                await loadPendingTransactions(safeInfo.address)
+              }, 2000)
             }
           }
           break
 
-        case 'view':
+        case ProposalAction.VIEW:
           // Показываем детальную информацию о пропозале
           console.log('📋 Детали пропозала:', proposal)
           showSuccess('Детали пропозала выведены в консоль')
@@ -254,6 +301,18 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
     // Также обновляем статистику пропозалов
     if (userAddress) {
       loadUserProposalsStats(userAddress)
+    }
+  }
+
+  // Точечное обновление одного пропозала (передается в UserProposals)
+  const handleSingleProposalUpdate = (safeTxHash: string) => {
+    console.log('🎯 Запрос точечного обновления пропозала:', safeTxHash)
+    // Логика обновления будет в самом UserProposals компоненте через updateSingleProposal
+    // Здесь мы можем дополнительно обновить статистику
+    if (userAddress) {
+      setTimeout(() => {
+        loadUserProposalsStats(userAddress)
+      }, 2000) // Обновляем статистику с задержкой
     }
   }
 
@@ -398,6 +457,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
               userAddress={userAddress}
               onProposalAction={handleUserProposalAction}
               refreshTrigger={userProposalsRefresh}
+              onSingleProposalUpdate={handleSingleProposalUpdate}
               className=""
             />
           </div>

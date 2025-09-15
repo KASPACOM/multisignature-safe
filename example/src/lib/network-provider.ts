@@ -20,7 +20,7 @@ let wallet: Eth;
 
 export class NetworkProvider {
   private currentStatus: ConnectionStatus = { 
-    state: WalletState.NoProvider,
+    state: WalletState.Disconnected,
     isLoading: false 
   }
   
@@ -148,10 +148,7 @@ export class NetworkProvider {
 
   // Проверка является ли состояние загрузочным
   private isLoadingState(state: WalletState): boolean {
-    return [
-      WalletState.AccountInitialization,
-      WalletState.NetworkSwitching
-    ].includes(state)
+    return state === WalletState.Connecting
   }
 
   // Обнаружение провайдера
@@ -167,7 +164,7 @@ export class NetworkProvider {
       this.setupEventListeners()
     } else {
       console.log('❌ NetworkProvider: MetaMask не найден')
-      this.updateStatus(WalletState.NoProvider)
+      this.updateStatus(WalletState.Disconnected)
     }
   }
 

@@ -49,12 +49,9 @@ export const getSafeConfig = async (network: Network, options: {
 }
 
 export enum WalletState {
-  NoProvider = 'NoProvider',
-  AccountInitialization = 'AccountInitialization',
-  NetworkSwitching = 'NetworkSwitching',
-  Connected = 'Connected',
-  Disconnected = 'Disconnected',
-  Error = 'Error'
+  Disconnected = 'Disconnected',  // Не подключен (включает: нет провайдера, отклонен, ошибка)
+  Connecting = 'Connecting',       // Подключается (любой loading процесс)
+  Connected = 'Connected'          // Подключен и готов к работе
 }
 
 export type ConnectionStatus = {
@@ -90,19 +87,17 @@ export type StateTransition = {
 }
 
 export const WALLET_TRANSITIONS: StateTransition[] = [
-  { from: WalletState.NoProvider, to: WalletState.AccountInitialization, trigger: 'PROVIDER_DETECTED' },
+  // Универсальные переходы (работают из любого состояния)
+  { from: WalletState.Disconnected, to: WalletState.Connecting, trigger: 'PROVIDER_DETECTED' },
+  { from: WalletState.Disconnected, to: WalletState.Connecting, trigger: 'CONNECT_REQUESTED' },
   
-  { from: WalletState.AccountInitialization, to: WalletState.NetworkSwitching, trigger: 'ACCOUNT_CHANGED' },
-  { from: WalletState.AccountInitialization, to: WalletState.Connected, trigger: 'CONNECTION_SUCCESS' },
-  { from: WalletState.AccountInitialization, to: WalletState.Error, trigger: 'CONNECTION_ERROR' },
+  // Переходы из состояния подключения
+  { from: WalletState.Connecting, to: WalletState.Connected, trigger: 'CONNECTION_SUCCESS' },
+  { from: WalletState.Connecting, to: WalletState.Disconnected, trigger: 'CONNECTION_ERROR' },
+  { from: WalletState.Connecting, to: WalletState.Disconnected, trigger: 'DISCONNECTED' },
   
-  { from: WalletState.NetworkSwitching, to: WalletState.Connected, trigger: 'CONNECTION_SUCCESS' },
-  { from: WalletState.NetworkSwitching, to: WalletState.Error, trigger: 'CONNECTION_ERROR' },
-  
-  { from: WalletState.Connected, to: WalletState.NetworkSwitching, trigger: 'NETWORK_CHANGED' },
-  { from: WalletState.Connected, to: WalletState.AccountInitialization, trigger: 'ACCOUNT_CHANGED' },
-  { from: WalletState.Connected, to: WalletState.Disconnected, trigger: 'DISCONNECTED' },
-  
-  { from: WalletState.Error, to: WalletState.AccountInitialization, trigger: 'CONNECT_REQUESTED' },
-  { from: WalletState.Disconnected, to: WalletState.AccountInitialization, trigger: 'CONNECT_REQUESTED' }
+  // Переходы из подключенного состояния
+  { from: WalletState.Connected, to: WalletState.Connecting, trigger: 'NETWORK_CHANGED' },
+  { from: WalletState.Connected, to: WalletState.Connecting, trigger: 'ACCOUNT_CHANGED' },
+  { from: WalletState.Connected, to: WalletState.Disconnected, trigger: 'DISCONNECTED' }
 ]

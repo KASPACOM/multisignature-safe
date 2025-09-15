@@ -19,13 +19,6 @@ import { UniversalOperationResult } from './offchain'
 import { Network } from './network-types'
 
 
-export interface CreateSafeParams {
-  owners: string[]
-  threshold: number
-  network: Network
-}
-
-
 export interface TransactionParams {
   to: string
   value: string
@@ -512,13 +505,6 @@ export class SafeOnChain {
     return safeTransaction
   }
 
-  async signTransaction(
-    safeTransaction: SafeTransaction
-  ): Promise<SafeTransaction> {
-    const safeSdk = this.getSafeSdk()
-    const signedTransaction = await safeSdk.signTransaction(safeTransaction)
-    return signedTransaction
-  }
 
   async getTransactionHash(
     safeTransaction: SafeTransaction
@@ -527,44 +513,7 @@ export class SafeOnChain {
     return await safeSdk.getTransactionHash(safeTransaction)
   }
 
-  async approveTransactionHash(safeTransaction: SafeTransaction): Promise<string> {
-    const currentAddress = this.getCurrentSafeAddress()
-    if (!currentAddress) {
-      throw new Error('Safe адрес не определен')
-    }
 
-    const lazyConfig = await getSafeConfig(this.network, {
-      safeAddress: currentAddress,
-      contractNetworks: this.contractNetworks
-    }) as SafeConfig
-
-    const safeSdk = await Safe.init(lazyConfig)
-
-    const isDeployed = await safeSdk.isSafeDeployed()
-    if (!isDeployed) {
-      throw new Error(`Safe не развернут! Сначала создайте Safe по адресу: ${currentAddress}`)
-    }
-
-    const txHash = await safeSdk.getTransactionHash(safeTransaction)
-
-    console.log('📝 Одобряем хэш транзакции:', txHash)
-
-    const approveTxResponse = await safeSdk.approveTransactionHash(txHash)
-
-    console.log('✅ Хэш одобрен! Tx:', approveTxResponse.hash)
-    return txHash
-  }
-
-  async checkApprovedOwners(transactionHash: string): Promise<string[]> {
-    const safeSdk = this.getSafeSdk()
-
-    console.log('🔍 Проверяем кто одобрил хэш:', transactionHash)
-
-    const approvedOwners = await safeSdk.getOwnersWhoApprovedTx(transactionHash)
-
-    console.log('👥 Владельцы одобрившие хэш:', approvedOwners)
-    return approvedOwners
-  }
 
   async executeTransactionByHash(safeTxHash: string, safeOffChain?: any): Promise<string> {
     console.log('🚀 SafeOnChain: Выполнение транзакции по хешу:', safeTxHash)
@@ -581,7 +530,6 @@ export class SafeOnChain {
         console.log('📡 Восстанавливаем транзакцию из STS...')
         const txFromSTS = await safeOffChain.getTransaction(safeTxHash)
 
-
         safeTransaction = await this.createSafeTransaction({
           to: txFromSTS.to,
           value: txFromSTS.value || '0',
@@ -593,13 +541,13 @@ export class SafeOnChain {
           safeTransaction.data.nonce = parseInt(txFromSTS.nonce.toString())
         }
 
-        // Восстанавливаем подписи из confirmations STS
+        // Восстанавливаем ВСЕ подписи из confirmations STS (не фильтруем по типу)
         if (txFromSTS.confirmations && txFromSTS.confirmations.length > 0) {
-          console.log(`🔄 Восстанавливаем ${txFromSTS.confirmations.length} подписей из STS...`)
+          console.log(`🔄 Восстанавливаем ${txFromSTS.confirmations.length} подтверждений из STS...`)
           
           for (const confirmation of txFromSTS.confirmations) {
-            if (confirmation.signature && confirmation.signature !== '0x' && confirmation.signatureType === 'EOA') {
-              console.log(`📝 Добавляем EIP-712 подпись от ${confirmation.owner}`)
+            if (confirmation.signature && confirmation.signature !== '0x') {
+              console.log(`📝 Добавляем подпись от ${confirmation.owner} (тип: ${confirmation.signatureType})`)
               
               // Создаем подпись для SafeSDK
               const signature = {
@@ -611,10 +559,23 @@ export class SafeOnChain {
               }
               
               safeTransaction.addSignature(signature)
+            } else if (confirmation.signatureType !== 'EOA') {
+              // Для non-EOA подтверждений (approve hash) создаем специальную подпись
+              console.log(`📝 Добавляем approve hash подтверждение от ${confirmation.owner}`)
+              
+              const approveSignature = {
+                signer: confirmation.owner.toLowerCase(),
+                data: `0x${confirmation.owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
+                isContractSignature: false,
+                staticPart: () => `0x${confirmation.owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
+                dynamicPart: () => ''
+              }
+              
+              safeTransaction.addSignature(approveSignature)
             }
           }
           
-          console.log(`✅ Восстановлено ${safeTransaction.signatures.size} EIP-712 подписей из STS`)
+          console.log(`✅ Восстановлено ${safeTransaction.signatures.size} подтверждений из STS`)
         }
 
         console.log('✅ Транзакция восстановлена из STS')
@@ -622,7 +583,7 @@ export class SafeOnChain {
         throw new Error('Для выполнения транзакции по хешу требуется SafeOffChain для восстановления данных')
       }
 
-      const result = await this.executeWithPreApprovals(safeTransaction)
+      const result = await this.executeTransaction(safeTransaction)
 
       console.log('✅ SafeOnChain: Транзакция выполнена по хешу:', result.hash)
       return result.hash
@@ -633,7 +594,7 @@ export class SafeOnChain {
     }
   }
 
-  async executeWithPreApprovals(safeTransaction: SafeTransaction): Promise<any> {
+  async executeTransaction(safeTransaction: SafeTransaction): Promise<any> {
     const currentAddress = this.getCurrentSafeAddress()
     if (!currentAddress) {
       throw new Error('Safe адрес не определен')
@@ -654,73 +615,34 @@ export class SafeOnChain {
     const threshold = await safeSdk.getThreshold()
     const txHash = await safeSdk.getTransactionHash(safeTransaction)
 
-    console.log('🔄 Универсальная проверка подписей для выполнения...')
+    console.log('🚀 Выполняем транзакцию с подписями из STS...')
     console.log('📋 Хэш транзакции:', txHash)
 
-    // Получаем EIP-712 подписи из транзакции
-    const existingSignatures = safeTransaction.signatures.size
-    const eip712Signers = Array.from(safeTransaction.signatures.values()).map(sig => sig.signer)
-    
-    // Получаем approved hash'ы из блокчейна
-    const approvedOwners = await this.checkApprovedOwners(txHash)
-    
-    // Считаем общее количество
-    const totalSignatures = existingSignatures + approvedOwners.length
+    // Получаем подписи из транзакции (все приходят из STS)
+    const signatures = safeTransaction.signatures.size
+    const signers = Array.from(safeTransaction.signatures.values()).map(sig => sig.signer)
 
     console.log(`🎯 Требуется: ${threshold}`)
-    console.log(`📝 EIP-712 подписей: ${existingSignatures}`)
-    console.log(`👥 EIP-712 подписанты: [${eip712Signers.join(', ')}]`)
-    console.log(`✅ Approved hash: ${approvedOwners.length}`)
-    console.log(`👥 Approved владельцы: [${approvedOwners.join(', ')}]`)
-    console.log(`🔢 Всего подписей: ${totalSignatures}`)
+    console.log(`📝 Подписей в транзакции: ${signatures}`)
+    console.log(`👥 Подписанты: [${signers.join(', ')}]`)
 
-    if (totalSignatures < threshold) {
-      const missing = threshold - totalSignatures
-      throw new Error(`Недостаточно подписей! Требуется: ${threshold}, есть: ${totalSignatures} (EIP-712: ${existingSignatures}, approved: ${approvedOwners.length}). Нужно еще ${missing} подписей.`)
+    if (signatures < threshold) {
+      const missing = threshold - signatures
+      throw new Error(`Недостаточно подписей! Требуется: ${threshold}, есть: ${signatures}. Нужно еще ${missing} подписей.`)
     }
-
-    // Используем оригинальную safeTransaction (с EIP-712 подписями, если есть)
-    // Добавляем approved подписи только если они есть
-    if (approvedOwners.length > 0) {
-      const sortedOwners = approvedOwners.sort((a, b) =>
-        a.toLowerCase().localeCompare(b.toLowerCase())
-      )
-
-      console.log('🔄 Добавляем approved hash подписи к транзакции:', sortedOwners)
-
-      sortedOwners.forEach(owner => {
-        const approvedSignature = {
-          signer: owner.toLowerCase(),
-          data: `0x${owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
-          isContractSignature: false,
-          staticPart: () => `0x${owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
-          dynamicPart: () => ''
-        }
-
-        safeTransaction.addSignature(approvedSignature)
-        console.log(`📝 Добавлена approved подпись для: ${owner}`)
-      })
-    }
-
-    console.log('🚀 Выполняем транзакцию с комбинированными подписями...')
-    console.log(`📊 EIP-712: ${existingSignatures}, Approved: ${approvedOwners.length}, Всего: ${safeTransaction.signatures.size}`)
 
     const executeTxResponse = await safeSdk.executeTransaction(safeTransaction)
 
-    console.log('✅ Транзакция выполнена через pre-approval механизм!')
+    console.log('✅ Транзакция выполнена!')
     console.log('🔗 Хэш выполнения:', executeTxResponse.hash)
 
     return {
       hash: executeTxResponse.hash,
       response: executeTxResponse,
-      eip712Signatures: existingSignatures,
-      approvedHashSignatures: approvedOwners.length,
-      totalSignatures: safeTransaction.signatures.size,
+      totalSignatures: signatures,
       threshold: threshold,
       executedBy: await this.network.signer.getAddress(),
-      // Для обратной совместимости
-      preApprovedOwners: approvedOwners,
-      usedSignatures: safeTransaction.signatures.size
+      usedSignatures: signatures
     }
   }
 
