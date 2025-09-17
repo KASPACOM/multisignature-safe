@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { SafeConnectionForm as SafeConnectionFormData, createSafeConnectionForm } from '../lib/onchain'
 
 interface SafeConnectionFormProps {
@@ -7,6 +7,11 @@ interface SafeConnectionFormProps {
   loading?: boolean
   title?: string
   className?: string
+  prefilledData?: {
+    address: string
+    owners: string[]
+    threshold: number
+  } | null
 }
 
 const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
@@ -14,7 +19,8 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
   onCancel,
   loading = false,
   title = "Подключение к Safe",
-  className = ""
+  className = "",
+  prefilledData
 }) => {
   const [formData, setFormData] = useState<SafeConnectionFormData>({
     safeAddress: '',
@@ -25,6 +31,20 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
   })
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+
+  // Предзаполнение формы данными из навигации
+  useEffect(() => {
+    if (prefilledData) {
+      console.log('🔄 Предзаполняем форму подключения к Safe:', prefilledData)
+      setFormData({
+        safeAddress: prefilledData.address,
+        owners: prefilledData.owners,
+        threshold: prefilledData.threshold,
+        safeVersion: '1.4.1',
+        fallbackHandler: ''
+      })
+    }
+  }, [prefilledData])
 
   // Валидация формы
   const validateForm = (): boolean => {

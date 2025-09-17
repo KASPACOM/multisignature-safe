@@ -55,7 +55,7 @@ export class SafeOnChain {
   private networkConfig = getNetworkConfig()
   private contractNetworks = createContractNetworksConfig(this.networkConfig)
   private safeSdk: Safe | null = null
-  private currentSafeAddress: string | null = null
+  currentSafeAddress: string | null = null
 
   constructor(network: Network) {
     this.network = network
@@ -64,6 +64,10 @@ export class SafeOnChain {
       hasProvider: !!network.provider,
       hasSigner: !!network.signer
     })
+  }
+
+  private sortOwners(owners: string[]): string[] {
+    return [...owners].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
   }
 
   async updateNetwork(newNetwork: Network) {
@@ -95,14 +99,6 @@ export class SafeOnChain {
     return this.safeSdk
   }
 
-  getCurrentSafeAddress(): string | null {
-    return this.currentSafeAddress
-  }
-
-  async getSignerAddress(): Promise<string> {
-    return await this.network.signer.getAddress()
-  }
-
   isConnected(): boolean {
     const hasSafeSdk = this.safeSdk !== null
     const hasCurrentSafeAddress = this.currentSafeAddress !== null
@@ -112,10 +108,17 @@ export class SafeOnChain {
   async createSafeWithForm(form: SafeCreationForm): Promise<Safe> {
     const { owners, threshold } = form
 
-    console.log('🚀 Создание Safe с формой:', { owners, threshold })
+    // Сортируем владельцев для консистентности адреса Safe
+    const sortedOwners = this.sortOwners(owners)
+
+    console.log('🚀 Создание Safe с формой:', { 
+      originalOwners: owners, 
+      sortedOwners, 
+      threshold 
+    })
 
     const safeAccountConfig: SafeAccountConfig = {
-      owners,
+      owners: sortedOwners,
       threshold,
       fallbackHandler: form.fallbackHandler || this.networkConfig.contracts.compatibilityFallbackHandler
     }
@@ -177,7 +180,8 @@ export class SafeOnChain {
 
           console.log('✅ Это действительно Safe! Подключаемся к нему...')
           console.log('🔄 ПЕРЕКЛЮЧЕНИЕ: PREDICT MODE → ADDRESS MODE')
-          console.log('👥 Владельцы:', form.owners)
+          console.log('👥 Исходные владельцы:', form.owners)
+          console.log('👥 Отсортированные владельцы:', sortedOwners)
           console.log('🔢 Порог:', form.threshold)
 
 
@@ -296,14 +300,18 @@ export class SafeOnChain {
   }
 
   async getSafeAddressByForm(form: SafeCreationForm): Promise<string> {
+    // Сортируем владельцев для консистентности адреса Safe
+    const sortedOwners = this.sortOwners(form.owners)
+    
     console.log('🔮 Получаем предсказанный адрес Safe по форме...')
-    console.log('👥 Владельцы:', form.owners)
+    console.log('👥 Исходные владельцы:', form.owners)
+    console.log('👥 Отсортированные владельцы:', sortedOwners)
     console.log('🔢 Порог:', form.threshold)
 
     try {
       const predictedSafe: PredictedSafeProps = {
         safeAccountConfig: {
-          owners: form.owners,
+          owners: sortedOwners,
           threshold: form.threshold,
           fallbackHandler: form.fallbackHandler || this.networkConfig.contracts.compatibilityFallbackHandler
         },
@@ -354,9 +362,8 @@ export class SafeOnChain {
 
   async getCurrentSafeInfo() {
     const safeSdk = this.getSafeSdk()
-    const safeAddress = this.getCurrentSafeAddress()
 
-    if (!safeAddress) {
+    if (!this.currentSafeAddress) {
       throw new Error('Адрес Safe не определен')
     }
 
@@ -385,7 +392,7 @@ export class SafeOnChain {
     console.log('  🔖 Версия:', version)
 
     return {
-      address: safeAddress,
+      address: this.currentSafeAddress,
       owners,
       threshold,
       balance: ethers.formatEther(balance),
@@ -422,9 +429,8 @@ export class SafeOnChain {
     console.log('🏗️ Создаем универсальную транзакцию для текущего Safe...')
 
     const safeSdk = this.getSafeSdk()
-    const safeAddress = this.getCurrentSafeAddress()
 
-    if (!safeAddress) {
+    if (!this.currentSafeAddress) {
       throw new Error('Safe адрес не определен')
     }
 
@@ -438,7 +444,7 @@ export class SafeOnChain {
       }
 
       console.log('📋 Параметры транзакции:')
-      console.log(`   - Safe: ${safeAddress}`)
+      console.log(`   - Safe: ${this.currentSafeAddress}`)
       console.log(`   - To: ${transactionParams.to}`)
       console.log(`   - Value: ${transactionParams.value} ETH`)
       console.log(`   - Data: ${transactionParams.data}`)
@@ -448,7 +454,7 @@ export class SafeOnChain {
       const nonce = safeTransaction.data.nonce
       console.log(`   - Nonce (из транзакции): ${nonce}`)
 
-      const transactionHash = await this.getTransactionHash(safeTransaction)
+      const transactionHash = await safeSdk.getTransactionHash(safeTransaction)
 
       console.log('🎯 Хеш транзакции для подписи:', transactionHash)
 
@@ -504,16 +510,6 @@ export class SafeOnChain {
 
     return safeTransaction
   }
-
-
-  async getTransactionHash(
-    safeTransaction: SafeTransaction
-  ): Promise<string> {
-    const safeSdk = this.getSafeSdk()
-    return await safeSdk.getTransactionHash(safeTransaction)
-  }
-
-
 
   async executeTransactionByHash(safeTxHash: string, safeOffChain?: any): Promise<string> {
     console.log('🚀 SafeOnChain: Выполнение транзакции по хешу:', safeTxHash)
@@ -595,13 +591,12 @@ export class SafeOnChain {
   }
 
   async executeTransaction(safeTransaction: SafeTransaction): Promise<any> {
-    const currentAddress = this.getCurrentSafeAddress()
-    if (!currentAddress) {
+    if (!this.currentSafeAddress) {
       throw new Error('Safe адрес не определен')
     }
 
     const lazyConfig = await getSafeConfig(this.network, {
-      safeAddress: currentAddress,
+      safeAddress: this.currentSafeAddress,
       contractNetworks: this.contractNetworks
     }) as SafeConfig
 
@@ -609,7 +604,7 @@ export class SafeOnChain {
 
     const isDeployed = await safeSdk.isSafeDeployed()
     if (!isDeployed) {
-      throw new Error(`Safe не развернут! Сначала создайте Safe по адресу: ${currentAddress}`)
+      throw new Error(`Safe не развернут! Сначала создайте Safe по адресу: ${this.currentSafeAddress}`)
     }
 
     const threshold = await safeSdk.getThreshold()

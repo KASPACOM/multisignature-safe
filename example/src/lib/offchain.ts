@@ -7,53 +7,18 @@ import {
   ProposeTransactionProps,
   SafeMultisigTransactionListResponse,
 } from '@safe-global/api-kit'
+import type {
+  SafeMultisigTransactionResponse,
+  SafeMultisigConfirmationResponse,
+  SignatureType,
+  DataDecoded
+} from '@safe-global/types-kit'
 
 import { getNetworkConfig } from './safe-common'
 
 
-// Интерфейс для пропозала пользователя
-export interface UserProposal {
-  safeTxHash: string
-  safeAddress: string
-  to: string
-  value: string
-  data: string
-  operation: number
-  safeTxGas: string
-  baseGas: string
-  gasPrice: string
-  gasToken: string
-  refundReceiver: string
-  nonce: number
-  submissionDate: string
-  modified: string
-  blockNumber?: number
-  transactionHash?: string
-  trusted: boolean
-  signatures: Array<{
-    owner: string
-    signature: string
-    signatureType: string
-  }>
-  confirmationsRequired: number
-  confirmations: Array<{
-    owner: string
-    submissionDate: string
-    transactionHash?: string
-    signature: string
-    signatureType: string
-  }>
-  isExecuted: boolean
-  isSuccessful?: boolean
-  ethGasPrice?: string
-  maxFeePerGas?: string
-  maxPriorityFeePerGas?: string
-  gasUsed?: string
-  fee?: string
-  origin: string
-  dataDecoded?: any
-  executor?: string
-}
+// Используем тип, который возвращает getAllTransactions из API Kit
+export type UserProposal = SafeMultisigTransactionListResponse['results'][0]
 
 // Интерфейс для фильтров пропозалов пользователя
 export interface UserProposalsFilter {
@@ -342,7 +307,7 @@ export class SafeOffChain {
         }
 
         // Получаем транзакции для этого Safe
-        const safeProposals = await this.getSafeProposals(safeAddress, filter)
+        const safeProposals = await this.getSTSProposalsOnly(safeAddress)
         proposals.push(...safeProposals)
 
       } catch (error) {
@@ -391,10 +356,10 @@ export class SafeOffChain {
           stats.executed++
           stats.byStatus.executed++
         } else {
-          const userHasSigned = proposal.confirmations.some(
-            conf => conf.owner.toLowerCase() === userAddress.toLowerCase()
-          )
-          const hasEnoughSignatures = proposal.confirmations.length >= proposal.confirmationsRequired
+          const userHasSigned = proposal.confirmations?.some(
+            (conf: SafeMultisigConfirmationResponse) => conf.owner.toLowerCase() === userAddress.toLowerCase()
+          ) || false
+          const hasEnoughSignatures = (proposal.confirmations?.length || 0) >= proposal.confirmationsRequired
 
           if (!userHasSigned) {
             stats.pending++
@@ -428,10 +393,6 @@ export class SafeOffChain {
     }
   }
 
-  // ===============================================
-  // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
-  // ===============================================
-
   // Получение списка Safe, где пользователь является владельцем
   private async getUserSafes(userAddress: string): Promise<string[]> {
     if (!this.apiKit) {
@@ -450,9 +411,54 @@ export class SafeOffChain {
     }
   }
 
-  // Получение пропозалов для конкретного Safe - только из STS
-  private async getSafeProposals(safeAddress: string, filter: UserProposalsFilter): Promise<UserProposal[]> {
-    return await this.getSTSProposalsOnly(safeAddress)
+  // Публичный метод для получения списка Safe контрактов пользователя
+  async getUserSafesList(userAddress: string): Promise<string[]> {
+    console.log('📋 Получаем список Safe контрактов для пользователя:', userAddress)
+    
+    try {
+      const safes = await this.getUserSafes(userAddress)
+      console.log('✅ Найдено Safe контрактов:', safes.length)
+      return safes
+    } catch (error) {
+      console.error('❌ Ошибка получения списка Safe:', error)
+      return []
+    }
+  }
+
+  // Получение Safe контрактов без активных пропозалов
+  async getUserSafesWithoutProposals(userAddress: string): Promise<string[]> {
+    console.log('🔍 Получаем Safe контракты без активных пропозалов для:', userAddress)
+    
+    try {
+      // Получаем все Safe контракты пользователя
+      const allSafes = await this.getUserSafesList(userAddress)
+      console.log('📋 Всего Safe контрактов:', allSafes.length)
+      
+      // Получаем все пропозалы пользователя
+      const allProposals = await this.getUserProposals({ userAddress })
+      console.log('📋 Всего пропозалов:', allProposals.length)
+      
+      // Создаем Set адресов Safe с активными пропозалами
+      const safesWithProposals = new Set(
+        allProposals
+          .filter(proposal => !proposal.isExecuted) // Только невыполненные пропозалы
+          .map(proposal => proposal.safe.toLowerCase())
+      )
+      
+      console.log('📋 Safe с активными пропозалами:', safesWithProposals.size)
+      
+      // Фильтруем Safe контракты, исключая те, у которых есть активные пропозалы
+      const safesWithoutProposals = allSafes.filter(
+        safeAddress => !safesWithProposals.has(safeAddress.toLowerCase())
+      )
+      
+      console.log('✅ Safe контрактов без активных пропозалов:', safesWithoutProposals.length)
+      return safesWithoutProposals
+      
+    } catch (error) {
+      console.error('❌ Ошибка получения Safe без пропозалов:', error)
+      return []
+    }
   }
 
   // Фильтрация и сортировка пропозалов
@@ -464,9 +470,9 @@ export class SafeOffChain {
       filtered = filtered.filter(proposal => {
         if (proposal.isExecuted) return false
 
-        const userHasSigned = proposal.confirmations.some(
-          conf => conf.owner.toLowerCase() === filter.userAddress.toLowerCase()
-        )
+        const userHasSigned = proposal.confirmations?.some(
+          (conf: SafeMultisigConfirmationResponse) => conf.owner.toLowerCase() === filter.userAddress.toLowerCase()
+        ) || false
         return !userHasSigned
       })
     }
@@ -483,7 +489,7 @@ export class SafeOffChain {
           comparison = new Date(a.submissionDate).getTime() - new Date(b.submissionDate).getTime()
           break
         case 'nonce':
-          comparison = a.nonce - b.nonce
+          comparison = Number(a.nonce) - Number(b.nonce)
           break
         case 'modified':
           comparison = new Date(a.modified).getTime() - new Date(b.modified).getTime()
@@ -506,41 +512,8 @@ export class SafeOffChain {
     try {
       const response = await this.getAllTransactions(safeAddress)
 
-      // Конвертируем в формат UserProposal
-      const proposals: UserProposal[] = response.results.map(tx => ({
-        safeTxHash: tx.safeTxHash,
-        safeAddress: safeAddress,
-        to: tx.to,
-        value: tx.value,
-        data: tx.data || '0x',
-        operation: tx.operation,
-        safeTxGas: tx.safeTxGas,
-        baseGas: tx.baseGas,
-        gasPrice: tx.gasPrice,
-        gasToken: tx.gasToken,
-        refundReceiver: tx.refundReceiver || '0x0000000000000000000000000000000000000000',
-        nonce: parseInt(tx.nonce.toString()) || 0,
-        submissionDate: tx.submissionDate,
-        modified: tx.modified,
-        blockNumber: tx.blockNumber ?? undefined,
-        transactionHash: tx.transactionHash ?? undefined,
-        trusted: tx.trusted,
-        signatures: Array.isArray(tx.signatures) ? tx.signatures : [],
-        confirmationsRequired: tx.confirmationsRequired,
-        confirmations: Array.isArray(tx.confirmations) ? tx.confirmations : [],
-        isExecuted: tx.isExecuted,
-        isSuccessful: tx.isSuccessful ?? undefined,
-        ethGasPrice: tx.ethGasPrice ?? undefined,
-        maxFeePerGas: tx.maxFeePerGas ?? undefined,
-        maxPriorityFeePerGas: tx.maxPriorityFeePerGas ?? undefined,
-        gasUsed: tx.gasUsed?.toString(),
-        fee: tx.fee ?? undefined,
-        origin: tx.origin || 'STS',
-        dataDecoded: tx.dataDecoded,
-        executor: tx.executor ?? undefined
-      }))
-
-      return proposals
+      // Возвращаем SafeMultisigTransactionResponse напрямую
+      return response.results
 
     } catch (error: any) {
       console.error(`❌ Ошибка получения пропозалов из STS для Safe ${safeAddress}:`, error)

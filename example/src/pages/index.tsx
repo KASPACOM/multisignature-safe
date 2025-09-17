@@ -4,7 +4,8 @@ import { SafeTransaction } from '@safe-global/types-kit'
 
 import SafeOnChain, {
   UniversalFunctionCall,
-  SafeCreationForm
+  SafeCreationForm,
+  SafeConnectionForm as SafeConnectionFormData
 } from '../lib/onchain'
 import { SafeManagement, ProposalsPage } from '../components'
 import SafeOffChain, { UniversalOperationResult } from '../lib/offchain'
@@ -39,6 +40,12 @@ interface UniversalTransactionForm {
   ethValue: string
 }
 
+// Enum для секций приложения
+enum AppSection {
+  PROPOSALS = 'proposals',
+  CREATE_PROPOSAL = 'main'
+}
+
 const SafeMultisigApp: React.FC = () => {
   // Состояние Network подключения
   const [network, setNetwork] = useState<Network | null>(null)
@@ -49,14 +56,21 @@ const SafeMultisigApp: React.FC = () => {
   const [userAddress, setUserAddress] = useState<string>('')
 
   // Состояние управления разделами
-  const [currentSection, setCurrentSection] = useState<'main' | 'proposals'>('main')
+  const [currentSection, setCurrentSection] = useState<AppSection>(AppSection.PROPOSALS)
 
   // Состояние Safe
   const [safeInfo, setSafeInfo] = useState<SafeInfo | null>(null)
 
   // Состояние Safe подключения
-  const [showSafeManagement, setShowSafeManagement] = useState(!safeInfo)
+  const [showSafeManagement, setShowSafeManagement] = useState(false)
   const [predictedSafeAddress, setPredictedSafeAddress] = useState<string>('')
+  
+  // Состояние для навигации к созданию Safe с заполненными данными
+  const [prefilledSafeData, setPrefilledSafeData] = useState<{
+    address: string
+    owners: string[]
+    threshold: number
+  } | null>(null)
 
   // Состояние универсальной формы транзакций
   const [universalForm, setUniversalForm] = useState<UniversalTransactionForm>({
@@ -100,7 +114,7 @@ const SafeMultisigApp: React.FC = () => {
       } else {
         setUserAddress('')
         // Возвращаемся на главную секцию при отключении
-        setCurrentSection('main')
+        setCurrentSection(AppSection.CREATE_PROPOSAL)
       }
     })
 
@@ -158,7 +172,9 @@ const SafeMultisigApp: React.FC = () => {
             console.error('❌ Ошибка автоматического переподключения Safe:', error)
             // Очищаем состояние Safe при ошибке
             setSafeInfo(null)
-            setShowSafeManagement(true)
+            if (currentSection === AppSection.CREATE_PROPOSAL) {
+              setShowSafeManagement(true)
+            }
             showError('Safe отключен из-за смены коннекта. Переподключитесь.')
           }
         }, 100)
@@ -167,9 +183,35 @@ const SafeMultisigApp: React.FC = () => {
       setSafeOnChain(null)
       // При отсутствии Network очищаем все состояние Safe
       setSafeInfo(null)
-      setShowSafeManagement(true)
+      if (currentSection === AppSection.CREATE_PROPOSAL) {
+        setShowSafeManagement(true)
+      }
     }
   }, [network])
+
+  // Автоматически показываем Safe Management при переключении на страницу "Создание пропозала"
+  useEffect(() => {
+    if (currentSection === AppSection.CREATE_PROPOSAL && !safeInfo) {
+      setShowSafeManagement(true)
+    }
+  }, [currentSection, safeInfo])
+
+  // Очищаем состояние формы при переключении на страницу "Создание пропозала"
+  useEffect(() => {
+    if (currentSection === AppSection.CREATE_PROPOSAL) {
+      // Очищаем только если нет активного Safe
+      if (!safeInfo) {
+        setUniversalForm({
+          contractAddress: '',
+          functionSignature: '',
+          functionParams: [''],
+          ethValue: '0'
+        })
+        setUniversalResult(null)
+        setSignatureResult(null)
+      }
+    }
+  }, [currentSection, safeInfo])
 
   // Инициализация приложения
   const initializeApp = async () => {
@@ -220,6 +262,63 @@ const SafeMultisigApp: React.FC = () => {
     }
   }
 
+  // Функция навигации к созданию Safe с заполненными данными
+  const handleNavigateToSafeCreation = (safeAddress: string, owners: string[], threshold: number) => {
+    console.log('🔄 Навигация к созданию Safe с данными:', { safeAddress, owners, threshold })
+    
+    // Сохраняем данные для предзаполнения
+    setPrefilledSafeData({
+      address: safeAddress,
+      owners,
+      threshold
+    })
+    
+    // Переключаемся на страницу "Создание пропозала" и показываем Safe Management
+    setCurrentSection(AppSection.CREATE_PROPOSAL)
+    setShowSafeManagement(true)
+    
+    showSuccess(`Переходим к созданию пропозала для Safe ${formatAddress(safeAddress)}`)
+  }
+
+  // Функция подключения к Safe
+  const handleConnectToSafe = async (formData: SafeConnectionFormData) => {
+    if (!safeOnChain || !network) {
+      showError('Подключите кошелек')
+      return
+    }
+
+    setLoadingState('createSafe', true)
+    try {
+      console.log('🔌 Подключение к Safe с формой:', formData)
+
+      await safeOnChain.connectToSafeWithForm(formData)
+
+      // Получаем информацию о Safe
+      const safeData = await safeOnChain.getCurrentSafeInfo()
+      setSafeInfo({
+        address: safeData.address,
+        owners: safeData.owners,
+        threshold: safeData.threshold,
+        balance: safeData.balance,
+        nonce: safeData.nonce
+      })
+
+      // Скрываем форму управления
+      setShowSafeManagement(false)
+      
+      // Очищаем предзаполненные данные
+      setPrefilledSafeData(null)
+
+      showSuccess(`✅ Подключились к Safe ${formatAddress(safeData.address)}`)
+      
+    } catch (error) {
+      console.error('❌ Ошибка подключения к Safe:', error)
+      showError(error instanceof Error ? error.message : 'Ошибка подключения к Safe')
+    } finally {
+      setLoadingState('createSafe', false)
+    }
+  }
+
   // 2. Создание Safe с формой
   const handleCreateSafeWithForm = async (formData: SafeCreationForm) => {
     if (!safeOnChain || !network) {
@@ -233,7 +332,7 @@ const SafeMultisigApp: React.FC = () => {
 
       await safeOnChain.createSafeWithForm(formData)
 
-      const safeAddress = safeOnChain.getCurrentSafeAddress()
+      const safeAddress = safeOnChain.currentSafeAddress
       if (!safeAddress) {
         throw new Error('Не удалось получить адрес созданного Safe')
       }
@@ -393,7 +492,7 @@ const SafeMultisigApp: React.FC = () => {
 
       setTimeout(() => {
         console.log('📋 Переключаемся на раздел "Мои пропозалы" - транзакция уже существует')
-        setCurrentSection('proposals')
+        setCurrentSection(AppSection.PROPOSALS)
       }, 1500)
     } catch (error: any) {
       // Если транзакция не найдена (404 или текст ошибки), создаем новый пропозал
@@ -428,9 +527,19 @@ const SafeMultisigApp: React.FC = () => {
 
       showSuccess('✅ Пропозал создан успешно!')
 
+      // Очищаем состояние формы после успешного создания пропозала
+      setUniversalForm({
+        contractAddress: '',
+        functionSignature: '',
+        functionParams: [''],
+        ethValue: '0'
+      })
+      setUniversalResult(null)
+      setSignatureResult(null)
+
       setTimeout(() => {
         console.log('📋 Переключаемся на раздел "Мои пропозалы" - пропозал создан')
-        setCurrentSection('proposals')
+        setCurrentSection(AppSection.PROPOSALS)
       }, 1500)
     } catch (error: any) {
         console.error('❌ Ошибка создания пропозала:', error)
@@ -576,7 +685,16 @@ const SafeMultisigApp: React.FC = () => {
       setUniversalResult(null)
       setSignatureResult(null)
       setPredictedSafeAddress('')
-      setShowSafeManagement(true)
+      // Очищаем форму при отключении от Safe
+      setUniversalForm({
+        contractAddress: '',
+        functionSignature: '',
+        functionParams: [''],
+        ethValue: '0'
+      })
+      if (currentSection === AppSection.CREATE_PROPOSAL) {
+        setShowSafeManagement(true)
+      }
       showSuccess('Отключено от Safe')
     }
 
@@ -598,22 +716,22 @@ const SafeMultisigApp: React.FC = () => {
             <div className="mb-8 flex justify-center">
               <div className="bg-white rounded-lg shadow p-1 flex">
                 <button
-                  onClick={() => setCurrentSection('main')}
-                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${currentSection === 'main'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                >
-                  🏠 Главная
-                </button>
-                <button
-                  onClick={() => setCurrentSection('proposals')}
-                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${currentSection === 'proposals'
+                  onClick={() => setCurrentSection(AppSection.PROPOSALS)}
+                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${currentSection === AppSection.PROPOSALS
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-600 hover:text-gray-900'
                     }`}
                 >
                   📋 Мои пропозалы
+                </button>
+                <button
+                  onClick={() => setCurrentSection(AppSection.CREATE_PROPOSAL)}
+                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${currentSection === AppSection.CREATE_PROPOSAL
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  🚀 Создание пропозала
                 </button>
               </div>
             </div>
@@ -687,13 +805,16 @@ const SafeMultisigApp: React.FC = () => {
 
 
               {/* Информация о Safe */}
-              {safeInfo && (
+              {network && safeInfo && (
                 <div className="mb-8 p-6 bg-white rounded-lg shadow">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold">Информация о Safe</h2>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setShowSafeManagement(true)}
+                        onClick={() => {
+                          setCurrentSection(AppSection.CREATE_PROPOSAL)
+                          setShowSafeManagement(true)
+                        }}
                         className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
                       >
                         🔄 Переподключиться
@@ -737,8 +858,9 @@ const SafeMultisigApp: React.FC = () => {
               )}
 
               {/* Управление Safe */}
-              {network && showSafeManagement && (
+              {network && currentSection === AppSection.CREATE_PROPOSAL && (!safeInfo || showSafeManagement) && (
                 <SafeManagement
+                  onConnect={handleConnectToSafe}
                   onCreate={handleCreateSafeWithForm}
                   onPredict={handlePredictSafeAddress}
                   loading={loading.createSafe}
@@ -746,10 +868,11 @@ const SafeMultisigApp: React.FC = () => {
                   predictedAddress={predictedSafeAddress}
                   userAddress={userAddress}
                   className="mb-8"
+                  prefilledData={prefilledSafeData}
                 />
               )}
 
-              {network && safeInfo && (
+              {network && currentSection === AppSection.CREATE_PROPOSAL && safeInfo && (
                 <div className="space-y-8">
                   {/* Шаги 2-4: Доступны только когда Safe подключен */}
 
@@ -1006,7 +1129,7 @@ const SafeMultisigApp: React.FC = () => {
           )}
 
           {/* РАЗДЕЛ УПРАВЛЕНИЯ ПРОПОЗАЛАМИ */}
-          {currentSection === 'proposals' && (
+          {currentSection === AppSection.PROPOSALS && (
             <ProposalsPage
               network={network}
               userAddress={userAddress}
@@ -1016,6 +1139,7 @@ const SafeMultisigApp: React.FC = () => {
               setSafeInfo={setSafeInfo}
               showError={showError}
               showSuccess={showSuccess}
+              onNavigateToSafeCreation={handleNavigateToSafeCreation}
             />
           )}
 

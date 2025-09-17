@@ -10,23 +10,13 @@ export type Network = {
   eip1193Provider: any  // Сырой window.ethereum для Safe SDK
 }
 
-// Утилитарные функции для работы с Network
-export const getEip1193Provider = (network: Network): any => {
-  // Используем сохраненный оригинальный EIP-1193 провайдер
-  return network.eip1193Provider
-}
-
-export const getSignerAddress = async (network: Network): Promise<string> => {
-  return await network.signer.getAddress()
-}
-
 export const getSafeConfig = async (network: Network, options: {
   safeAddress?: string
   predictedSafe?: PredictedSafeProps
   contractNetworks?: ContractNetworksConfig
 }) => {
-  const eth = getEip1193Provider(network)
-  const signerAddress = await getSignerAddress(network)
+  const eth = network.eip1193Provider
+  const signerAddress = await network.signer.getAddress()
   
   // Создаем базовую конфигурацию
   const config: any = {

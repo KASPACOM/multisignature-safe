@@ -42,6 +42,7 @@ interface ProposalsPageProps {
   showError: (message: string) => void
   showSuccess: (message: string) => void
   loadPendingTransactions?: (address: string) => Promise<void>
+  onNavigateToSafeCreation?: (safeAddress: string, owners: string[], threshold: number) => void
 }
 
 const ProposalsPage: React.FC<ProposalsPageProps> = ({
@@ -53,7 +54,8 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
   setSafeInfo,
   showError,
   showSuccess,
-  loadPendingTransactions
+  loadPendingTransactions,
+  onNavigateToSafeCreation
 }) => {
   // Состояние статистики пропозалов пользователя
   const [userProposalsStats, setUserProposalsStats] = useState<UserProposalsStats | null>(null)
@@ -62,6 +64,10 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
   
   // Состояние фильтров пропозалов
   const [proposalsFilter, setProposalsFilter] = useState<'all' | 'needsSignature' | 'readyToExecute' | 'executed'>('all')
+  
+  // Состояние Safe контрактов без пропозалов
+  const [safesWithoutProposals, setSafesWithoutProposals] = useState<string[]>([])
+  const [safesLoading, setSafesLoading] = useState<boolean>(false)
 
   // Загрузка статистики пропозалов пользователя
   const loadUserProposalsStats = async (address: string) => {
@@ -92,6 +98,24 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
       setUserProposalsStats(null)
     } finally {
       setStatsLoading(false)
+    }
+  }
+
+  // Загрузка Safe контрактов без пропозалов
+  const loadSafesWithoutProposals = async (address: string) => {
+    console.log('🏠 Загружаем Safe контракты без пропозалов для:', address)
+    setSafesLoading(true)
+
+    try {
+      const safes = await safeOffChain.getUserSafesWithoutProposals(address)
+      setSafesWithoutProposals(safes)
+      
+      console.log('✅ Safe контракты без пропозалов загружены:', safes.length)
+    } catch (error) {
+      console.error('❌ Ошибка загрузки Safe контрактов:', error)
+      setSafesWithoutProposals([])
+    } finally {
+      setSafesLoading(false)
     }
   }
 
@@ -294,13 +318,41 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
     }
   }
 
+  // Обработка клика по Safe контракту
+  const handleSafeClick = async (safeAddress: string) => {
+    console.log('🏠 Клик по Safe контракту:', safeAddress)
+    
+    try {
+      // Получаем информацию о Safe из STS
+      const safeInfoFromSTS = await safeOffChain.getSafeInfo(safeAddress)
+      
+      console.log('📋 Информация о Safe:', {
+        address: safeAddress,
+        owners: safeInfoFromSTS.owners,
+        threshold: safeInfoFromSTS.threshold
+      })
+      
+      // Переходим на экран создания Safe с заполненными данными
+      if (onNavigateToSafeCreation) {
+        onNavigateToSafeCreation(safeAddress, safeInfoFromSTS.owners, safeInfoFromSTS.threshold)
+      } else {
+        showError('Функция навигации к созданию Safe не настроена')
+      }
+      
+    } catch (error) {
+      console.error('❌ Ошибка получения информации о Safe:', error)
+      showError(`Не удалось получить информацию о Safe ${formatAddress(safeAddress)}`)
+    }
+  }
+
   // Обновление пропозалов пользователя
   const refreshUserProposals = () => {
     setUserProposalsRefresh(prev => prev + 1)
     
-    // Также обновляем статистику пропозалов
+    // Также обновляем статистику пропозалов и Safe контракты
     if (userAddress) {
       loadUserProposalsStats(userAddress)
+      loadSafesWithoutProposals(userAddress)
     }
   }
 
@@ -316,12 +368,14 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
     }
   }
 
-  // Загружаем статистику при подключении пользователя
+  // Загружаем статистику и Safe контракты при подключении пользователя
   useEffect(() => {
     if (userAddress) {
       loadUserProposalsStats(userAddress)
+      loadSafesWithoutProposals(userAddress)
     } else {
       setUserProposalsStats(null)
+      setSafesWithoutProposals([])
     }
   }, [userAddress])
 
@@ -449,6 +503,62 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Секция Safe контрактов без пропозалов */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">🏠 Мои Safe контракты</h2>
+              <button
+                onClick={() => userAddress && loadSafesWithoutProposals(userAddress)}
+                disabled={safesLoading}
+                className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50 text-sm"
+              >
+                {safesLoading ? '⏳ Загрузка...' : '🔄 Обновить'}
+              </button>
+            </div>
+
+            {safesLoading ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500">⏳ Загружаем ваши Safe контракты...</div>
+              </div>
+            ) : safesWithoutProposals.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600 mb-4">
+                  💡 Нажмите на адрес Safe контракта, чтобы создать пропозал для него
+                </p>
+                {safesWithoutProposals.map((safeAddress) => (
+                  <div
+                    key={safeAddress}
+                    onClick={() => handleSafeClick(safeAddress)}
+                    className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-mono text-sm text-gray-800">
+                          {formatAddress(safeAddress)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          🏠 Safe контракт без активных пропозалов
+                        </div>
+                      </div>
+                      <div className="text-blue-600 text-sm">
+                        ➡️ Создать пропозал
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-gray-500">
+                  ✨ У вас пока нет Safe контрактов без активных пропозалов
+                </div>
+                <div className="text-sm text-gray-400 mt-2">
+                  Создайте Safe контракт или дождитесь выполнения всех пропозалов
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Список пропозалов */}

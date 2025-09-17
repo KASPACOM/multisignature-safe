@@ -12,6 +12,11 @@ interface SafeManagementProps {
   predictedAddress?: string
   userAddress?: string
   className?: string
+  prefilledData?: {
+    address: string
+    owners: string[]
+    threshold: number
+  } | null
 }
 
 type TabType = 'create' | 'connect'
@@ -24,7 +29,8 @@ const SafeManagement: React.FC<SafeManagementProps> = ({
   predicting = false,
   predictedAddress,
   userAddress,
-  className = ""
+  className = "",
+  prefilledData
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('create')
 
@@ -34,6 +40,13 @@ const SafeManagement: React.FC<SafeManagementProps> = ({
       setActiveTab('create')
     }
   }, [activeTab, onConnect])
+
+  // Автоматически переключаемся на вкладку подключения, если есть предзаполненные данные
+  useEffect(() => {
+    if (prefilledData && onConnect) {
+      setActiveTab('connect')
+    }
+  }, [prefilledData, onConnect])
 
   return (
     <div className={`bg-white rounded-lg shadow ${className}`}>
@@ -100,6 +113,7 @@ const SafeManagement: React.FC<SafeManagementProps> = ({
             onConnect={onConnect}
             loading={loading}
             className="border-0 shadow-none"
+            prefilledData={prefilledData}
           />
         )}
       </div>
