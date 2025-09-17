@@ -4,6 +4,7 @@ import Safe from '@safe-global/protocol-kit'
 import {
   SafeTransaction,
   MetaTransactionData,
+  TransactionResult,
 } from '@safe-global/types-kit'
 import {
   SafeAccountConfig,
@@ -15,16 +16,14 @@ import {
   getNetworkConfig,
   createContractNetworksConfig
 } from './safe-common'
-import { UniversalOperationResult } from './offchain'
+import { SafeOffChain, UniversalOperationResult } from './offchain'
 import { Network } from './network-types'
-
 
 export interface TransactionParams {
   to: string
   value: string
   data: string
 }
-
 
 export interface SafeConnectionForm {
   safeAddress: string
@@ -42,12 +41,20 @@ export interface SafeCreationForm {
   fallbackHandler?: string
 }
 
-
 export interface UniversalFunctionCall {
   contractAddress: string
   functionSignature: string
   functionParams: any[]
   value?: string
+}
+
+interface ExecuteTransactionResponse {
+  hash: string
+  response: TransactionResult
+  totalSignatures: number
+  threshold: number
+  executedBy: string
+  usedSignatures: number
 }
 
 export class SafeOnChain {
@@ -70,28 +77,6 @@ export class SafeOnChain {
     return [...owners].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
   }
 
-  async updateNetwork(newNetwork: Network) {
-    console.log('🔄 SafeOnChain: Обновляем Network для новой сети/пользователя...')
-
-    try {
-      const oldAddress = await this.network?.signer?.getAddress()
-      const newAddress = await newNetwork?.signer?.getAddress()
-      console.log('📍 Старый адрес:', oldAddress || 'неизвестен')
-      console.log('📍 Новый адрес:', newAddress || 'неизвестен')
-      console.log('📍 Старая сеть:', this.network?.id?.toString() || 'неизвестна')
-      console.log('📍 Новая сеть:', newNetwork?.id?.toString() || 'неизвестна')
-    } catch (error) {
-      console.log('⚠️ Не удалось получить информацию о Network:', error)
-    }
-
-    this.network = newNetwork
-
-    this.safeSdk = null
-    this.currentSafeAddress = null
-
-    console.log('✅ SafeOnChain: Network обновлен! Требуется переподключение к Safe.')
-  }
-
   getSafeSdk(): Safe {
     if (!this.safeSdk) {
       throw new Error('Safe не подключен. Сначала создайте или подключитесь к Safe.')
@@ -111,10 +96,10 @@ export class SafeOnChain {
     // Сортируем владельцев для консистентности адреса Safe
     const sortedOwners = this.sortOwners(owners)
 
-    console.log('🚀 Создание Safe с формой:', { 
-      originalOwners: owners, 
-      sortedOwners, 
-      threshold 
+    console.log('🚀 Создание Safe с формой:', {
+      originalOwners: owners,
+      sortedOwners,
+      threshold
     })
 
     const safeAccountConfig: SafeAccountConfig = {
@@ -135,12 +120,11 @@ export class SafeOnChain {
 
     // Используем исправленную функцию getSafeConfig
     console.log('🔍 Network eip1193Provider:', this.network.eip1193Provider)
-    console.log('🔍 EIP-1193 provider methods:', Object.getOwnPropertyNames(this.network.eip1193Provider || {}))
 
     const safeConfig = await getSafeConfig(this.network, {
       predictedSafe,
       contractNetworks: this.contractNetworks
-    }) as SafeConfig
+    })
 
     try {
       console.log('🔧 Инициализируем Safe SDK...', safeConfig)
@@ -172,7 +156,7 @@ export class SafeOnChain {
           const existingSafeConfig = await getSafeConfig(this.network, {
             safeAddress: predictedAddress,
             contractNetworks: this.contractNetworks
-          }) as SafeConfig
+          })
 
           console.log('🔄 Пробуем инициализировать как Safe...')
           const existingSafeSdk = await Safe.init(existingSafeConfig)
@@ -253,7 +237,7 @@ export class SafeOnChain {
       const safeConfig = await getSafeConfig(this.network, {
         safeAddress: form.safeAddress,
         contractNetworks: this.contractNetworks,
-      }) as SafeConfig
+      })
 
       console.log('🔧 Инициализируем Safe SDK для СУЩЕСТВУЮЩЕГО Safe...')
       const safeSdk = await Safe.init(safeConfig)
@@ -302,7 +286,7 @@ export class SafeOnChain {
   async getSafeAddressByForm(form: SafeCreationForm): Promise<string> {
     // Сортируем владельцев для консистентности адреса Safe
     const sortedOwners = this.sortOwners(form.owners)
-    
+
     console.log('🔮 Получаем предсказанный адрес Safe по форме...')
     console.log('👥 Исходные владельцы:', form.owners)
     console.log('👥 Отсортированные владельцы:', sortedOwners)
@@ -323,7 +307,7 @@ export class SafeOnChain {
       const safeConfig = await getSafeConfig(this.network, {
         predictedSafe,
         contractNetworks: this.contractNetworks,
-      }) as SafeConfig
+      })
 
       const safeSdk = await Safe.init(safeConfig)
       const predictedAddress = await safeSdk.getAddress()
@@ -454,6 +438,22 @@ export class SafeOnChain {
       const nonce = safeTransaction.data.nonce
       console.log(`   - Nonce (из транзакции): ${nonce}`)
 
+      // Валидация транзакции перед созданием хеша
+      console.log('🔍 Проверяем валидность транзакции...')
+      try {
+        const isValid = await safeSdk.isValidTransaction(safeTransaction)
+        
+        if (!isValid) {
+          console.error('❌ Транзакция не прошла валидацию!')
+          throw new Error('Транзакция не может быть выполнена: не прошла валидацию Safe SDK')
+        }
+        
+        console.log('✅ Транзакция прошла валидацию успешно')
+      } catch (validationError) {
+        console.error('❌ Ошибка валидации транзакции:', validationError)
+        throw new Error(`Транзакция не может быть выполнена: ${validationError}`)
+      }
+
       const transactionHash = await safeSdk.getTransactionHash(safeTransaction)
 
       console.log('🎯 Хеш транзакции для подписи:', transactionHash)
@@ -493,25 +493,7 @@ export class SafeOnChain {
     return safeTransaction
   }
 
-  async createMultiSendTransaction(
-    transactions: TransactionParams[]
-  ): Promise<SafeTransaction> {
-    const safeSdk = this.getSafeSdk()
-
-    const metaTransactions: MetaTransactionData[] = transactions.map(tx => ({
-      to: tx.to,
-      value: ethers.parseEther(tx.value).toString(),
-      data: tx.data
-    }))
-
-    const safeTransaction = await safeSdk.createTransaction({
-      transactions: metaTransactions
-    })
-
-    return safeTransaction
-  }
-
-  async executeTransactionByHash(safeTxHash: string, safeOffChain?: any): Promise<string> {
+  async executeTransactionByHash(safeTxHash: string, safeOffChain?: SafeOffChain): Promise<string> {
     console.log('🚀 SafeOnChain: Выполнение транзакции по хешу:', safeTxHash)
 
     if (!this.isConnected()) {
@@ -540,11 +522,11 @@ export class SafeOnChain {
         // Восстанавливаем ВСЕ подписи из confirmations STS (не фильтруем по типу)
         if (txFromSTS.confirmations && txFromSTS.confirmations.length > 0) {
           console.log(`🔄 Восстанавливаем ${txFromSTS.confirmations.length} подтверждений из STS...`)
-          
+
           for (const confirmation of txFromSTS.confirmations) {
             if (confirmation.signature && confirmation.signature !== '0x') {
               console.log(`📝 Добавляем подпись от ${confirmation.owner} (тип: ${confirmation.signatureType})`)
-              
+
               // Создаем подпись для SafeSDK
               const signature = {
                 signer: confirmation.owner.toLowerCase(),
@@ -553,12 +535,12 @@ export class SafeOnChain {
                 staticPart: () => confirmation.signature,
                 dynamicPart: () => ''
               }
-              
+
               safeTransaction.addSignature(signature)
             } else if (confirmation.signatureType !== 'EOA') {
               // Для non-EOA подтверждений (approve hash) создаем специальную подпись
               console.log(`📝 Добавляем approve hash подтверждение от ${confirmation.owner}`)
-              
+
               const approveSignature = {
                 signer: confirmation.owner.toLowerCase(),
                 data: `0x${confirmation.owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
@@ -566,11 +548,11 @@ export class SafeOnChain {
                 staticPart: () => `0x${confirmation.owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
                 dynamicPart: () => ''
               }
-              
+
               safeTransaction.addSignature(approveSignature)
             }
           }
-          
+
           console.log(`✅ Восстановлено ${safeTransaction.signatures.size} подтверждений из STS`)
         }
 
@@ -590,7 +572,7 @@ export class SafeOnChain {
     }
   }
 
-  async executeTransaction(safeTransaction: SafeTransaction): Promise<any> {
+  async executeTransaction(safeTransaction: SafeTransaction): Promise<ExecuteTransactionResponse> {
     if (!this.currentSafeAddress) {
       throw new Error('Safe адрес не определен')
     }
@@ -598,7 +580,7 @@ export class SafeOnChain {
     const lazyConfig = await getSafeConfig(this.network, {
       safeAddress: this.currentSafeAddress,
       contractNetworks: this.contractNetworks
-    }) as SafeConfig
+    })
 
     const safeSdk = await Safe.init(lazyConfig)
 
@@ -626,6 +608,22 @@ export class SafeOnChain {
       throw new Error(`Недостаточно подписей! Требуется: ${threshold}, есть: ${signatures}. Нужно еще ${missing} подписей.`)
     }
 
+    // Финальная валидация транзакции перед выполнением
+    console.log('🔍 Финальная проверка валидности транзакции перед выполнением...')
+    try {
+      const isValid = await safeSdk.isValidTransaction(safeTransaction)
+      
+      if (!isValid) {
+        console.error('❌ Транзакция не прошла финальную валидацию!')
+        throw new Error('Транзакция не может быть выполнена: не прошла финальную валидацию Safe SDK')
+      }
+      
+      console.log('✅ Транзакция прошла финальную валидацию успешно')
+    } catch (validationError) {
+      console.error('❌ Ошибка финальной валидации транзакции:', validationError)
+      throw new Error(`Транзакция не может быть выполнена: ${validationError}`)
+    }
+
     const executeTxResponse = await safeSdk.executeTransaction(safeTransaction)
 
     console.log('✅ Транзакция выполнена!')
@@ -640,7 +638,6 @@ export class SafeOnChain {
       usedSignatures: signatures
     }
   }
-
 }
 
 // Создание формы подключения к Safe

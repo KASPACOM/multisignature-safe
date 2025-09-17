@@ -102,6 +102,13 @@ const UserProposals: React.FC<UserProposalsProps> = ({
       try {
         // Получаем обновленные данные о конкретном пропозале
         const updatedTransaction = await safeOffChain.getTransaction(safeTxHash)
+        console.log('📥 Получены обновленные данные пропозала:', {
+          safeTxHash,
+          isExecuted: updatedTransaction.isExecuted,
+          isSuccessful: updatedTransaction.isSuccessful,
+          executionDate: updatedTransaction.executionDate,
+          confirmations: updatedTransaction.confirmations?.length || 0
+        })
         
         // Обновляем только этот пропозал в списке
         setProposals(prevProposals => 
@@ -111,8 +118,10 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                 ...proposal,
                 confirmations: updatedTransaction.confirmations || [],
                 confirmationsRequired: updatedTransaction.confirmationsRequired || proposal.confirmationsRequired,
-                isExecuted: updatedTransaction.isExecuted || false,
-                executionDate: updatedTransaction.executionDate || null
+                isExecuted: updatedTransaction.isExecuted,
+                executionDate: updatedTransaction.executionDate,
+                isSuccessful: updatedTransaction.isSuccessful,
+                transactionHash: updatedTransaction.transactionHash
               }
             }
             return proposal
@@ -177,7 +186,7 @@ const UserProposals: React.FC<UserProposalsProps> = ({
       case 'needsMySignature':
         return proposals.filter(p => {
           if (p.isExecuted) return false
-          const userHasSigned = p.confirmations.some(
+          const userHasSigned = p.confirmations?.some(
             conf => conf.owner.toLowerCase() === userAddress.toLowerCase()
           )
           return !userHasSigned
@@ -186,17 +195,17 @@ const UserProposals: React.FC<UserProposalsProps> = ({
       case 'waitingForOthers':
         return proposals.filter(p => {
           if (p.isExecuted) return false
-          const userHasSigned = p.confirmations.some(
+          const userHasSigned = p.confirmations?.some(
             conf => conf.owner.toLowerCase() === userAddress.toLowerCase()
           )
-          const hasEnoughSignatures = p.confirmations.length >= p.confirmationsRequired
+          const hasEnoughSignatures = (p.confirmations?.length || 0) >= p.confirmationsRequired
           return userHasSigned && !hasEnoughSignatures
         })
 
       case 'readyToExecute':
         return proposals.filter(p => {
           if (p.isExecuted) return false
-          return p.confirmations.length >= p.confirmationsRequired
+          return (p.confirmations?.length || 0) >= p.confirmationsRequired
         })
 
       case 'executed':
@@ -218,10 +227,10 @@ const UserProposals: React.FC<UserProposalsProps> = ({
       }
     }
 
-    const userHasSigned = proposal.confirmations.some(
+    const userHasSigned = proposal.confirmations?.some(
       conf => conf.owner.toLowerCase() === userAddress.toLowerCase()
-    )
-    const hasEnoughSignatures = proposal.confirmations.length >= proposal.confirmationsRequired
+    ) || false
+    const hasEnoughSignatures = (proposal.confirmations?.length || 0) >= proposal.confirmationsRequired
 
     if (!userHasSigned) {
       return { 
@@ -266,10 +275,10 @@ const UserProposals: React.FC<UserProposalsProps> = ({
         // Всегда обновляем конкретный пропозал
         setTimeout(() => {
           updateSingleProposal(proposal.safeTxHash, 
-            action === ProposalAction.EXECUTE ? 4 : 3, // Больше попыток для execute
-            action === ProposalAction.EXECUTE ? 2000 : 1500 // Больше интервал для execute
+            action === ProposalAction.EXECUTE ? 5 : 3, // Больше попыток для execute
+            action === ProposalAction.EXECUTE ? 3000 : 1500 // Больше интервал для execute
           )
-        }, action === ProposalAction.EXECUTE ? 1000 : 500)
+        }, action === ProposalAction.EXECUTE ? 2000 : 500)
         
         // Дополнительно вызываем обновление статистики (если предоставлено)
         if (onSingleProposalUpdate) {
@@ -492,17 +501,17 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                           <div>
                             <span className="font-medium">Подписи:</span>
                             <span className={`ml-1 ${
-                              proposal.confirmations.length >= proposal.confirmationsRequired 
+                              (proposal.confirmations?.length || 0) >= proposal.confirmationsRequired 
                                 ? 'text-green-600' 
                                 : 'text-orange-600'
                             }`}>
-                              {proposal.confirmations.length} / {proposal.confirmationsRequired}
+                              {proposal.confirmations?.length || 0} / {proposal.confirmationsRequired}
                             </span>
                           </div>
                           
                           <div>
                             <span className="font-medium">Safe:</span>
-                            <span className="ml-1">{formatAddress(proposal.safeAddress)}</span>
+                            <span className="ml-1">{formatAddress(proposal.safe)}</span>
                           </div>
                           
                           <div>
@@ -517,9 +526,9 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                         <div className="flex gap-2">
                           {!proposal.isExecuted && (
                             <>
-                              {!proposal.confirmations.some(conf => 
+                              {!proposal.confirmations?.some(conf => 
                                 conf.owner.toLowerCase() === userAddress.toLowerCase()
-                              ) && proposal.confirmations.length < proposal.confirmationsRequired && (
+                              ) && (proposal.confirmations?.length || 0) < proposal.confirmationsRequired && (
                                 <button
                                   onClick={() => handleProposalAction(proposal, ProposalAction.SIGN)}
                                   disabled={actionLoading[proposal.safeTxHash] === 'signing'}
@@ -530,33 +539,33 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                               )}
                               
                               {/* Показываем статус если пользователь уже подписал */}
-                              {proposal.confirmations.some(conf => 
+                              {proposal.confirmations?.some(conf => 
                                 conf.owner.toLowerCase() === userAddress.toLowerCase()
-                              ) && proposal.confirmations.length < proposal.confirmationsRequired && (
+                              ) && (proposal.confirmations?.length || 0) < proposal.confirmationsRequired && (
                                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
                                   ✅ Вы подписали
                                 </span>
                               )}
                               
                               {/* Показываем статус если threshold достигнут но пользователь не подписывал */}
-                              {!proposal.confirmations.some(conf => 
+                              {!proposal.confirmations?.some(conf => 
                                 conf.owner.toLowerCase() === userAddress.toLowerCase()
-                              ) && proposal.confirmations.length >= proposal.confirmationsRequired && (
+                              ) && (proposal.confirmations?.length || 0) >= proposal.confirmationsRequired && (
                                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm">
                                   🔒 Подписи собраны
                                 </span>
                               )}
                               
                               {/* Показываем статус если пользователь подписал И threshold достигнут */}
-                              {proposal.confirmations.some(conf => 
+                              {proposal.confirmations?.some(conf => 
                                 conf.owner.toLowerCase() === userAddress.toLowerCase()
-                              ) && proposal.confirmations.length >= proposal.confirmationsRequired && (
+                              ) && (proposal.confirmations?.length || 0) >= proposal.confirmationsRequired && (
                                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
                                   ✅ Готово к выполнению
                                 </span>
                               )}
                               
-                              {proposal.confirmations.length >= proposal.confirmationsRequired && (
+                              {(proposal.confirmations?.length || 0) >= proposal.confirmationsRequired && (
                                 <button
                                   onClick={() => handleProposalAction(proposal, ProposalAction.EXECUTE)}
                                   disabled={actionLoading[proposal.safeTxHash] === 'executing'}
@@ -599,13 +608,13 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                             </div>
                           )}
                           
-                          {proposal.confirmations.length > 0 && (
+                          {(proposal.confirmations?.length || 0) > 0 && (
                             <div>
                               <label className="text-sm font-medium text-gray-700 mb-2 block">
-                                Подписи ({proposal.confirmations.length}):
+                                Подписи ({proposal.confirmations?.length || 0}):
                               </label>
                               <div className="space-y-2">
-                                {proposal.confirmations.map((conf, index) => (
+                                {proposal.confirmations?.map((conf, index) => (
                                   <div key={index} className="flex items-center gap-3 p-2 bg-white border rounded">
                                     <div className="flex-1">
                                       <div className="font-medium text-sm">

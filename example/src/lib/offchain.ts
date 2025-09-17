@@ -36,7 +36,7 @@ export interface UserProposalsFilter {
 // Интерфейс для результата универсальной операции  
 export interface UniversalOperationResult {
   transactionHash: string
-  safeTransaction: any | null // Может быть null в некоторых случаях
+  safeTransaction: SafeTransaction
   encodedData: string
   transactionDetails: {
     to: string
@@ -122,80 +122,16 @@ export class SafeOffChain {
     }
   }
 
-  // Получение списка ожидающих транзакций
-  async getPendingTransactions(safeAddress: string) {
-    if (!this.apiKit) {
-      throw new Error('STS недоступен')
-    }
-
-    try {
-      return (await this.apiKit.getPendingTransactions(safeAddress)).results
-    } catch (error: any) {
-      console.error('Ошибка получения ожидающих транзакций:', error)
-
-      // Если Safe не найден в STS (обычная ситуация для новосозданных Safe)
-      if (error.status === 404 || error.message?.includes('Not Found') || error.message?.includes('404')) {
-        console.log('⚠️ Safe не найден в STS (возможно, только что создан). Возвращаем пустой список транзакций.')
-        return []
-      }
-
-      throw error
-    }
-  }
-
-  // Получение всех транзакций Safe
-  async getAllTransactions(
-    safeAddress: string,
-    options?: {
-      executed?: boolean
-      queued?: boolean
-      trusted?: boolean
-      limit?: number
-      offset?: number
-    }
-  ): Promise<SafeMultisigTransactionListResponse> {
-    if (!this.apiKit) {
-      throw new Error('STS недоступен')
-    }
-
-    try {
-      const response = await this.apiKit.getMultisigTransactions(safeAddress)
-      return response
-    } catch (error) {
-      console.error('Ошибка получения транзакций:', error)
-      throw error
-    }
-  }
-
-  // Получение информации о владельцах Safe
-  async getSafeOwners(safeAddress: string): Promise<string[]> {
-    if (!this.apiKit) {
-      throw new Error('STS недоступен')
-    }
-
-    try {
-      const safeInfo = await this.getSafeInfo(safeAddress)
-      return safeInfo.owners
-    } catch (error) {
-      console.error('Ошибка получения владельцев:', error)
-      throw error
-    }
-  }
-
   // Проверка, является ли адрес владельцем Safe
   async isOwner(safeAddress: string, ownerAddress: string): Promise<boolean> {
     try {
-      const owners = await this.getSafeOwners(safeAddress)
+      const owners = (await this.getSafeInfo(safeAddress)).owners
       return owners.map(addr => addr.toLowerCase()).includes(ownerAddress.toLowerCase())
     } catch (error) {
       console.error('Ошибка проверки владельца:', error)
       return false
     }
   }
-
-  // ===============================================
-  // МЕТОДЫ РЕГИСТРАЦИИ И ОТПРАВКИ ОПЕРАЦИЙ В STS  
-  // ===============================================
 
   // Подтверждение транзакции через STS API Kit (аналог approve hash в блокчейне)
   async confirmTransaction(
@@ -245,10 +181,6 @@ export class SafeOffChain {
       throw new Error('Подпись не найдена в универсальной транзакции')
     }
 
-    const signatureData = typeof signature === 'object' && signature && 'data' in signature
-      ? String(signature.data)
-      : String(signature)
-
     console.log('📤 Обрабатываем универсальную операцию:')
     console.log('  🎯 Хеш:', universalResult.transactionHash)
     console.log('  📍 Получатель:', universalResult.transactionDetails.to)
@@ -265,7 +197,7 @@ export class SafeOffChain {
         safeTransactionData: universalResult.safeTransaction.data,
         safeTxHash: universalResult.transactionHash,
         senderAddress,
-        senderSignature: signatureData,
+        senderSignature: signature.data,
         origin: origin || 'Universal Operation'
       }
 
@@ -393,67 +325,17 @@ export class SafeOffChain {
     }
   }
 
-  // Получение списка Safe, где пользователь является владельцем
-  private async getUserSafes(userAddress: string): Promise<string[]> {
-    if (!this.apiKit) {
-      console.warn('⚠️ STS недоступен, возвращаем пустой список Safe')
-      return []
-    }
-
-    try {
-      // Используем STS API для поиска Safe пользователя
-      // Примечание: этот метод может отличаться в зависимости от версии API
-      const userSafes = await this.apiKit.getSafesByOwner(userAddress)
-      return userSafes.safes || []
-    } catch (error) {
-      console.error('❌ Ошибка получения Safe пользователя:', error)
-      return []
-    }
-  }
-
-  // Публичный метод для получения списка Safe контрактов пользователя
-  async getUserSafesList(userAddress: string): Promise<string[]> {
-    console.log('📋 Получаем список Safe контрактов для пользователя:', userAddress)
-    
-    try {
-      const safes = await this.getUserSafes(userAddress)
-      console.log('✅ Найдено Safe контрактов:', safes.length)
-      return safes
-    } catch (error) {
-      console.error('❌ Ошибка получения списка Safe:', error)
-      return []
-    }
-  }
-
-  // Получение Safe контрактов без активных пропозалов
-  async getUserSafesWithoutProposals(userAddress: string): Promise<string[]> {
-    console.log('🔍 Получаем Safe контракты без активных пропозалов для:', userAddress)
+  // Получение Safe контрактов без любых пропозалов (новые Safe для создания первого пропозала)
+  async getUserSafes(userAddress: string): Promise<string[]> {
+    console.log('🔍 Получаем Safe контракты без любых пропозалов для:', userAddress)
     
     try {
       // Получаем все Safe контракты пользователя
-      const allSafes = await this.getUserSafesList(userAddress)
-      console.log('📋 Всего Safe контрактов:', allSafes.length)
+      const allSafes = await this.apiKit?.getSafesByOwner(userAddress)
+      console.log('📋 Всего Safe контрактов:', allSafes?.safes.length)
       
-      // Получаем все пропозалы пользователя
-      const allProposals = await this.getUserProposals({ userAddress })
-      console.log('📋 Всего пропозалов:', allProposals.length)
-      
-      // Создаем Set адресов Safe с активными пропозалами
-      const safesWithProposals = new Set(
-        allProposals
-          .filter(proposal => !proposal.isExecuted) // Только невыполненные пропозалы
-          .map(proposal => proposal.safe.toLowerCase())
-      )
-      
-      console.log('📋 Safe с активными пропозалами:', safesWithProposals.size)
-      
-      // Фильтруем Safe контракты, исключая те, у которых есть активные пропозалы
-      const safesWithoutProposals = allSafes.filter(
-        safeAddress => !safesWithProposals.has(safeAddress.toLowerCase())
-      )
-      
-      console.log('✅ Safe контрактов без активных пропозалов:', safesWithoutProposals.length)
-      return safesWithoutProposals
+      console.log('✅ Safe контрактов без любых пропозалов:', allSafes?.safes.length)
+      return allSafes?.safes || []
       
     } catch (error) {
       console.error('❌ Ошибка получения Safe без пропозалов:', error)
@@ -510,7 +392,7 @@ export class SafeOffChain {
     }
 
     try {
-      const response = await this.getAllTransactions(safeAddress)
+      const response = await this.apiKit.getMultisigTransactions(safeAddress)
 
       // Возвращаем SafeMultisigTransactionResponse напрямую
       return response.results

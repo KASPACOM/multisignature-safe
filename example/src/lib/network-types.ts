@@ -1,41 +1,44 @@
 import { ethers } from 'ethers'
 import { NetworkContracts } from './constants'
 import { Eip1193Provider } from 'ethers'
-import { ContractNetworksConfig, PredictedSafeProps } from '@safe-global/protocol-kit'
+import { ContractNetworksConfig, PredictedSafeProps, SafeConfig } from '@safe-global/protocol-kit'
 
 export type Network = {
   id: bigint
   provider: ethers.BrowserProvider
   signer: ethers.Signer
-  eip1193Provider: any  // Сырой window.ethereum для Safe SDK
+  eip1193Provider: Eip1193Provider  // Сырой window.ethereum для Safe SDK
 }
 
 export const getSafeConfig = async (network: Network, options: {
   safeAddress?: string
   predictedSafe?: PredictedSafeProps
   contractNetworks?: ContractNetworksConfig
-}) => {
+}): Promise<SafeConfig> => {
   const eth = network.eip1193Provider
   const signerAddress = await network.signer.getAddress()
   
   // Создаем базовую конфигурацию
-  const config: any = {
+  const baseConfig = {
     provider: eth,
-    signer: signerAddress
+    signer: signerAddress,
+    contractNetworks: options.contractNetworks
   }
   
-  // Добавляем опциональные поля только если они определены
+  // Возвращаем правильную конфигурацию в зависимости от параметров
   if (options.safeAddress) {
-    config.safeAddress = options.safeAddress
+    return {
+      ...baseConfig,
+      safeAddress: options.safeAddress
+    } as SafeConfig
+  } else if (options.predictedSafe) {
+    return {
+      ...baseConfig,
+      predictedSafe: options.predictedSafe
+    } as SafeConfig
+  } else {
+    throw new Error('Необходимо указать либо safeAddress, либо predictedSafe')
   }
-  if (options.predictedSafe) {
-    config.predictedSafe = options.predictedSafe
-  }
-  if (options.contractNetworks) {
-    config.contractNetworks = options.contractNetworks
-  }
-  
-  return config
 }
 
 export enum WalletState {

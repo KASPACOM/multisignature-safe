@@ -5,7 +5,7 @@ import SafeOnChain, {
   SafeConnectionForm,
 } from '../lib/onchain'
 import UserProposals, { ProposalAction } from './UserProposals'
-import SafeOffChain from '../lib/offchain'
+import SafeOffChain, { UserProposal } from '../lib/offchain'
 import { 
   formatAddress, 
 } from '../lib/safe-common'
@@ -107,7 +107,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
     setSafesLoading(true)
 
     try {
-      const safes = await safeOffChain.getUserSafesWithoutProposals(address)
+      const safes = await safeOffChain.getUserSafes(address)
       setSafesWithoutProposals(safes)
       
       console.log('✅ Safe контракты без пропозалов загружены:', safes.length)
@@ -120,7 +120,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
   }
 
   // Обработка действий с пропозалами пользователя
-  const handleUserProposalAction = async (proposal: any, action: ProposalAction) => {
+  const handleUserProposalAction = async (proposal: UserProposal, action: ProposalAction) => {
     console.log(`🎬 Действие с пропозалом пользователя: ${action}`, proposal.safeTxHash)
 
     try {
@@ -131,11 +131,11 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
             return
           }
           
-          console.log('🔌 Проверяем подключение к Safe для подписи:', proposal.safeAddress)
+          console.log('🔌 Проверяем подключение к Safe для подписи:', proposal.safe)
           
           // Проверяем, подключены ли мы к нужному Safe адресу
           const currentSafeAddressSign = safeInfo?.address?.toLowerCase()
-          const requiredSafeAddressSign = proposal.safeAddress.toLowerCase()
+          const requiredSafeAddressSign = proposal.safe.toLowerCase()
           
           if (currentSafeAddressSign !== requiredSafeAddressSign) {
             console.log(`🔄 Нужно подключиться к Safe ${requiredSafeAddressSign}, текущий: ${currentSafeAddressSign || 'не подключен'}`)
@@ -143,9 +143,9 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
             // Автоматически подключаемся к нужному Safe
             try {
               // Получаем информацию о Safe для создания формы подключения
-              const safeInfoFromSTS = await safeOffChain.getSafeInfo(proposal.safeAddress)
+              const safeInfoFromSTS = await safeOffChain.getSafeInfo(proposal.safe)
               const connectionForm: SafeConnectionForm = {
-                safeAddress: proposal.safeAddress,
+                safeAddress: proposal.safe,
                 owners: safeInfoFromSTS.owners,
                 threshold: safeInfoFromSTS.threshold
               }
@@ -162,9 +162,9 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                 nonce: safeData.nonce
               })
               
-              console.log('✅ Подключились к Safe для подписи:', proposal.safeAddress)
+              console.log('✅ Подключились к Safe для подписи:', proposal.safe)
             } catch (connectError) {
-              showError(`Не удалось подключиться к Safe ${formatAddress(proposal.safeAddress)}: ${connectError instanceof Error ? connectError.message : 'Неизвестная ошибка'}`)
+              showError(`Не удалось подключиться к Safe ${formatAddress(proposal.safe)}: ${connectError instanceof Error ? connectError.message : 'Неизвестная ошибка'}`)
               return
             }
           } else {
@@ -212,14 +212,10 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
               throw new Error(`Подпись не найдена для адреса ${userAddress}. Доступные: ${availableKeys.join(', ')}`)
             }
             
-            const signatureData = typeof userSignature === 'object' && userSignature && 'data' in userSignature
-              ? String(userSignature.data)
-              : String(userSignature)
-            
-            console.log('✅ EIP-712 подпись создана:', signatureData.slice(0, 20) + '...')
+            console.log('✅ EIP-712 подпись создана:', userSignature.data.slice(0, 20) + '...')
             
             // 5. Отправляем реальную подпись в STS
-            await safeOffChain.confirmTransaction(proposal.safeTxHash, signatureData)
+            await safeOffChain.confirmTransaction(proposal.safeTxHash, userSignature.data)
             showSuccess('✅ Пропозал подписан через EIP-712 и подтверждён в STS!')
             
           } catch (signError: any) {
@@ -237,11 +233,11 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
             return
           }
           
-          console.log('🔌 Проверяем подключение к Safe:', proposal.safeAddress)
+          console.log('🔌 Проверяем подключение к Safe:', proposal.safe)
           
           // Проверяем, подключены ли мы к нужному Safe адресу
           const currentSafeAddress = safeInfo?.address?.toLowerCase()
-          const requiredSafeAddress = proposal.safeAddress.toLowerCase()
+          const requiredSafeAddress = proposal.safe.toLowerCase()
           
           if (currentSafeAddress !== requiredSafeAddress) {
             console.log(`🔄 Нужно подключиться к Safe ${requiredSafeAddress}, текущий: ${currentSafeAddress || 'не подключен'}`)
@@ -249,9 +245,9 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
             // Автоматически подключаемся к нужному Safe
             try {
               // Получаем информацию о Safe для создания формы подключения
-              const safeInfoFromSTS = await safeOffChain.getSafeInfo(proposal.safeAddress)
+              const safeInfoFromSTS = await safeOffChain.getSafeInfo(proposal.safe)
               const connectionForm: SafeConnectionForm = {
-                safeAddress: proposal.safeAddress,
+                safeAddress: proposal.safe,
                 owners: safeInfoFromSTS.owners,
                 threshold: safeInfoFromSTS.threshold
               }
@@ -268,9 +264,9 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                 nonce: safeData.nonce
               })
               
-              console.log('✅ Подключились к Safe:', proposal.safeAddress)
+              console.log('✅ Подключились к Safe:', proposal.safe)
             } catch (connectError) {
-              showError(`Не удалось подключиться к Safe ${formatAddress(proposal.safeAddress)}: ${connectError instanceof Error ? connectError.message : 'Неизвестная ошибка'}`)
+              showError(`Не удалось подключиться к Safe ${formatAddress(proposal.safe)}: ${connectError instanceof Error ? connectError.message : 'Неизвестная ошибка'}`)
               return
             }
           } else {
@@ -539,7 +535,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                           {formatAddress(safeAddress)}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          🏠 Safe контракт без активных пропозалов
+                          🏠 Safe контракт
                         </div>
                       </div>
                       <div className="text-blue-600 text-sm">

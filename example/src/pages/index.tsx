@@ -65,13 +65,6 @@ const SafeMultisigApp: React.FC = () => {
   const [showSafeManagement, setShowSafeManagement] = useState(false)
   const [predictedSafeAddress, setPredictedSafeAddress] = useState<string>('')
   
-  // Состояние для навигации к созданию Safe с заполненными данными
-  const [prefilledSafeData, setPrefilledSafeData] = useState<{
-    address: string
-    owners: string[]
-    threshold: number
-  } | null>(null)
-
   // Состояние универсальной формы транзакций
   const [universalForm, setUniversalForm] = useState<UniversalTransactionForm>({
     contractAddress: '',
@@ -138,22 +131,6 @@ const SafeMultisigApp: React.FC = () => {
 
       const newSafeOnChain = new SafeOnChain(network)
       setSafeOnChain(newSafeOnChain)
-
-      // Делаем SafeOnChain доступным глобально для отладки
-      if (typeof window !== 'undefined') {
-        // Добавляем SafeOnChain в window для отладки
-        const w = window as any
-        w.debugSafeOnChain = newSafeOnChain
-        w.debugSafeOffChain = safeOffChain
-        w.debugNetwork = network
-        w.debugNetworkProvider = networkProvider
-
-        console.log('🔧 Отладочные объекты доступны в консоли:')
-        console.log('  - debugSafeOnChain - основной класс для блокчейн операций')
-        console.log('  - debugSafeOffChain - класс для работы с STS и пропозалами')
-        console.log('  - debugNetwork - текущий Network объект')
-        console.log('  - debugNetworkProvider - NetworkProvider сервис')
-      }
 
       // Если был подключенный Safe, автоматически переподключаемся
       if (currentSafeAddress && currentOwners && currentThreshold) {
@@ -263,21 +240,23 @@ const SafeMultisigApp: React.FC = () => {
   }
 
   // Функция навигации к созданию Safe с заполненными данными
-  const handleNavigateToSafeCreation = (safeAddress: string, owners: string[], threshold: number) => {
+  const handleNavigateToSafeCreation = async (safeAddress: string, owners: string[], threshold: number) => {
     console.log('🔄 Навигация к созданию Safe с данными:', { safeAddress, owners, threshold })
     
-    // Сохраняем данные для предзаполнения
-    setPrefilledSafeData({
-      address: safeAddress,
-      owners,
-      threshold
-    })
-    
-    // Переключаемся на страницу "Создание пропозала" и показываем Safe Management
+    // Переключаемся на страницу "Создание пропозала"
     setCurrentSection(AppSection.CREATE_PROPOSAL)
-    setShowSafeManagement(true)
     
-    showSuccess(`Переходим к созданию пропозала для Safe ${formatAddress(safeAddress)}`)
+    // Сразу подключаемся к Safe
+    const connectionFormData: SafeConnectionFormData = {
+      safeAddress,
+      owners,
+      threshold,
+      safeVersion: '1.4.1',
+      fallbackHandler: ''
+    }
+    
+    showSuccess(`Подключаемся к Safe ${formatAddress(safeAddress)}...`)
+    await handleConnectToSafe(connectionFormData)
   }
 
   // Функция подключения к Safe
@@ -305,9 +284,6 @@ const SafeMultisigApp: React.FC = () => {
 
       // Скрываем форму управления
       setShowSafeManagement(false)
-      
-      // Очищаем предзаполненные данные
-      setPrefilledSafeData(null)
 
       showSuccess(`✅ Подключились к Safe ${formatAddress(safeData.address)}`)
       
@@ -590,23 +566,19 @@ const SafeMultisigApp: React.FC = () => {
 
         console.log('✅ Найдена подпись пользователя!')
 
-        const signatureData = typeof userSignature === 'object' && userSignature && 'data' in userSignature
-          ? String(userSignature.data)
-          : String(userSignature)
-
         // 4. Обновляем состояние с результатами подписи
         universalResult.safeTransaction = signedSafeTransaction
 
-        const sig = ethers.Signature.from(signatureData)
+        const sig = ethers.Signature.from(userSignature.data)
         const newSignatureResult: SignatureResult = {
-          signature: signatureData,
+          signature: userSignature.data,
           r: sig.r,
           s: sig.s,
           v: sig.v,
           recoveryId: sig.v,
           encodedPacked: ethers.solidityPacked(
             ['bytes', 'bytes32', 'bytes32', 'uint8'],
-            [signatureData, sig.r, sig.s, sig.v]
+            [userSignature.data, sig.r, sig.s, sig.v]
           )
         }
 
@@ -860,7 +832,6 @@ const SafeMultisigApp: React.FC = () => {
               {/* Управление Safe */}
               {network && currentSection === AppSection.CREATE_PROPOSAL && (!safeInfo || showSafeManagement) && (
                 <SafeManagement
-                  onConnect={handleConnectToSafe}
                   onCreate={handleCreateSafeWithForm}
                   onPredict={handlePredictSafeAddress}
                   loading={loading.createSafe}
@@ -868,7 +839,6 @@ const SafeMultisigApp: React.FC = () => {
                   predictedAddress={predictedSafeAddress}
                   userAddress={userAddress}
                   className="mb-8"
-                  prefilledData={prefilledSafeData}
                 />
               )}
 

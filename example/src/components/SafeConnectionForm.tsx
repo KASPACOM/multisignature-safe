@@ -108,7 +108,7 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
   }
 
   // Обновление поля формы
-  const updateField = (field: keyof SafeConnectionFormData, value: any) => {
+  const updateField = (field: keyof SafeConnectionFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     // Очищаем ошибку для этого поля
     if (errors[field]) {
@@ -226,7 +226,7 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
             min="1"
             max={formData.owners.filter(o => o.trim()).length || 1}
             value={formData.threshold}
-            onChange={(e) => updateField('threshold', parseInt(e.target.value) || 1)}
+            onChange={(e) => updateField('threshold', e.target.value)}
             className={`w-32 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
               errors.threshold ? 'border-red-300' : 'border-gray-300'
             }`}
