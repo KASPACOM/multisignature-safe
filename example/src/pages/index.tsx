@@ -8,6 +8,12 @@ import SafeOnChain, {
   SafeConnectionForm as SafeConnectionFormData
 } from '../lib/onchain'
 import { SafeManagement, ProposalsPage } from '../components'
+import { ContractSelector } from '../components/ContractSelector'
+import { FunctionSelector } from '../components/FunctionSelector'
+import { ParameterForm } from '../components/ParameterForm'
+import { ContractDropdown } from '../components/ContractDropdown'
+import { FunctionDropdown } from '../components/FunctionDropdown'
+import { ContractInfo } from '../components/TokenInfo'
 import SafeOffChain, { UniversalOperationResult } from '../lib/offchain'
 import {
   formatAddress
@@ -15,6 +21,7 @@ import {
 import { NETWORK_COLORS, getSupportedNetworks } from '../lib/constants'
 import { Network, WalletState, ConnectionStatus } from '../lib/network-types'
 import { networkProvider } from '../lib/network-provider'
+import { ContractABI, ParsedFunction, FunctionFormData } from '../lib/contract-types'
 
 interface SafeInfo {
   address: string
@@ -64,7 +71,7 @@ const SafeMultisigApp: React.FC = () => {
   // Состояние Safe подключения
   const [showSafeManagement, setShowSafeManagement] = useState(false)
   const [predictedSafeAddress, setPredictedSafeAddress] = useState<string>('')
-  
+
   // Состояние универсальной формы транзакций
   const [universalForm, setUniversalForm] = useState<UniversalTransactionForm>({
     contractAddress: '',
@@ -72,6 +79,15 @@ const SafeMultisigApp: React.FC = () => {
     functionParams: [''],
     ethValue: '0'
   })
+
+  // Состояние для нового UI с ABI
+  const [selectedContract, setSelectedContract] = useState<ContractABI | null>(null)
+  const [selectedFunction, setSelectedFunction] = useState<ParsedFunction | null>(null)
+  const [structuredFormData, setStructuredFormData] = useState<FunctionFormData>({
+    parameters: {},
+    ethValue: '0'
+  })
+  const [useStructuredMode, setUseStructuredMode] = useState<boolean>(true)
 
   // Результат создания универсальной транзакции
   const [universalResult, setUniversalResult] = useState<UniversalOperationResult | null>(null)
@@ -150,7 +166,7 @@ const SafeMultisigApp: React.FC = () => {
             // Очищаем состояние Safe при ошибке
             setSafeInfo(null)
             if (currentSection === AppSection.CREATE_PROPOSAL) {
-              setShowSafeManagement(true)
+            setShowSafeManagement(true)
             }
             showError('Safe отключен из-за смены коннекта. Переподключитесь.')
           }
@@ -161,7 +177,7 @@ const SafeMultisigApp: React.FC = () => {
       // При отсутствии Network очищаем все состояние Safe
       setSafeInfo(null)
       if (currentSection === AppSection.CREATE_PROPOSAL) {
-        setShowSafeManagement(true)
+      setShowSafeManagement(true)
       }
     }
   }, [network])
@@ -186,6 +202,14 @@ const SafeMultisigApp: React.FC = () => {
         })
         setUniversalResult(null)
         setSignatureResult(null)
+        
+        // Очищаем новые состояния
+        setSelectedContract(null)
+        setSelectedFunction(null)
+        setStructuredFormData({
+          parameters: {},
+          ethValue: '0'
+        })
       }
     }
   }, [currentSection, safeInfo])
@@ -356,6 +380,41 @@ const SafeMultisigApp: React.FC = () => {
     setLoadingState('predictAddress', false)
   }
 
+  // Создание структурированного хеша транзакции (новый подход с ABI)
+  const handleCreateStructuredHash = async () => {
+    if (!safeOnChain || !safeInfo) {
+      showError('Safe не подключен')
+      return
+    }
+
+    if (!selectedContract || !selectedFunction) {
+      showError('Выберите контракт и функцию')
+      return
+    }
+
+    setLoadingState('universalHash', true)
+    setUniversalResult(null)
+
+    try {
+      console.log('🚀 Создаем структурированную транзакцию...')
+      
+      const result = await safeOnChain.createStructuredTransactionHash(
+        selectedContract.address,
+        selectedFunction,
+        structuredFormData
+      )
+
+      setUniversalResult(result)
+      showSuccess('Хеш транзакции успешно создан!')
+      
+    } catch (error: any) {
+      console.error('❌ Ошибка создания структурированной транзакции:', error)
+      showError(`Ошибка создания транзакции: ${error.message}`)
+    } finally {
+      setLoadingState('universalHash', false)
+    }
+  }
+
   // Создание универсального хеша транзакции
   const handleCreateUniversalHash = async () => {
     if (!safeOnChain || !safeInfo) {
@@ -512,6 +571,14 @@ const SafeMultisigApp: React.FC = () => {
       })
       setUniversalResult(null)
       setSignatureResult(null)
+      
+      // Очищаем новые состояния
+      setSelectedContract(null)
+      setSelectedFunction(null)
+      setStructuredFormData({
+        parameters: {},
+        ethValue: '0'
+      })
 
       setTimeout(() => {
         console.log('📋 Переключаемся на раздел "Мои пропозалы" - пропозал создан')
@@ -664,8 +731,16 @@ const SafeMultisigApp: React.FC = () => {
         functionParams: [''],
         ethValue: '0'
       })
+      
+      // Очищаем новые состояния
+      setSelectedContract(null)
+      setSelectedFunction(null)
+      setStructuredFormData({
+        parameters: {},
+        ethValue: '0'
+      })
       if (currentSection === AppSection.CREATE_PROPOSAL) {
-        setShowSafeManagement(true)
+      setShowSafeManagement(true)
       }
       showSuccess('Отключено от Safe')
     }
@@ -723,7 +798,7 @@ const SafeMultisigApp: React.FC = () => {
           )}
 
           {/* ГЛАВНАЯ СЕКЦИЯ */}
-          {currentSection === 'main' && (
+          {currentSection === AppSection.CREATE_PROPOSAL && (
             <>
               {/* Статус подключения */}
               <div className="mb-8 p-6 bg-white rounded-lg shadow">
@@ -846,11 +921,175 @@ const SafeMultisigApp: React.FC = () => {
                 <div className="space-y-8">
                   {/* Универсальные транзакции */}
                   <div className="p-6 bg-white rounded-lg shadow">
-                    <h2 className="text-xl font-semibold mb-4">🎯 Универсальные вызовы функций</h2>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-semibold">🎯 Универсальные вызовы функций</h2>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => setUseStructuredMode(true)}
+                          className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                            useStructuredMode
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          📋 ABI режим
+                        </button>
+                        <button
+                          onClick={() => setUseStructuredMode(false)}
+                          className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                            !useStructuredMode
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          ✏️ Ручной ввод
+                        </button>
+                      </div>
+                    </div>
+                    
                     <p className="text-gray-600 mb-6">
-                      Создайте хеш для любого вызова функции смарт-контракта. Укажите адрес контракта, сигнатуру функции и параметры.
+                      {useStructuredMode 
+                        ? 'Выберите контракт из списка и функцию из ABI для безопасного создания транзакции.'
+                        : 'Создайте хеш для любого вызова функции смарт-контракта. Укажите адрес контракта, сигнатуру функции и параметры.'
+                      }
                     </p>
 
+                    {useStructuredMode ? (
+                      /* Новый UI с Dropdown */
+                      <div className="space-y-6">
+                        {/* Dropdown для выбора контракта */}
+                        <ContractDropdown
+                          onContractSelect={setSelectedContract}
+                          selectedContract={selectedContract}
+                        />
+
+                        {/* Dropdown для выбора функции */}
+                        <FunctionDropdown
+                          contractAddress={selectedContract?.address || null}
+                          onFunctionSelect={setSelectedFunction}
+                          selectedFunction={selectedFunction}
+                        />
+
+                        {/* Информация о контракте */}
+                        {selectedContract && safeOnChain && (
+                          <ContractInfo 
+                            contractAddress={selectedContract.address}
+                            safeOnChain={safeOnChain}
+                          />
+                        )}
+
+                        {/* Параметры функции */}
+                        {selectedFunction && (
+                          <ParameterForm
+                            selectedFunction={selectedFunction}
+                            onFormChange={setStructuredFormData}
+                            formData={structuredFormData}
+                          />
+                        )}
+
+                        {/* Кнопка создания хеша */}
+                        {selectedContract && selectedFunction && (
+                          <div className="pt-6 border-t border-gray-200">
+                            <button
+                              onClick={handleCreateStructuredHash}
+                              disabled={loading.universalHash}
+                              className={`w-full px-6 py-3 rounded-lg font-medium transition-colors ${
+                                loading.universalHash
+                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  : 'bg-purple-600 text-white hover:bg-purple-700'
+                              }`}
+                            >
+                              {loading.universalHash ? (
+                                <span className="flex items-center justify-center">
+                                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Создание хеша...
+                                </span>
+                              ) : (
+                                '🔐 Создать хеш транзакции'
+                              )}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Результат для ABI режима */}
+                        {universalResult && (
+                          <div className="mt-6 p-4 bg-green-50 rounded-lg">
+                            <h3 className="font-semibold text-green-900 mb-4">✅ Хеш транзакции создан!</h3>
+
+                            <div className="space-y-3 text-sm">
+                              <div>
+                                <label className="font-medium text-gray-700">Хеш для подписи:</label>
+                                <div className="mt-1 p-2 bg-white border rounded font-mono text-xs break-all">
+                                  {universalResult.transactionHash}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="font-medium text-gray-700">Контракт:</label>
+                                  <div className="mt-1 p-2 bg-white border rounded font-mono text-xs">
+                                    {formatAddress(universalResult.transactionDetails.to)}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="font-medium text-gray-700">ETH Value:</label>
+                                  <div className="mt-1 p-2 bg-white border rounded">
+                                    {universalResult.transactionDetails.value} ETH
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="font-medium text-gray-700">Nonce:</label>
+                                  <div className="mt-1 p-2 bg-white border rounded">
+                                    {universalResult.transactionDetails.nonce}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="font-medium text-gray-700">Encoded Data:</label>
+                                <div className="mt-1 p-2 bg-white border rounded font-mono text-xs break-all">
+                                  {universalResult.encodedData}
+                                </div>
+                              </div>
+
+                              <div className="flex gap-3 pt-4">
+                                <button
+                                  onClick={handleSignTransactionHash}
+                                  disabled={loading.signature}
+                                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                                    loading.signature
+                                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                      : 'bg-purple-600 text-white hover:bg-purple-700'
+                                  }`}
+                                >
+                                  {loading.signature ? '🔄 Подписываем...' : '🖋️ Подписать транзакцию'}
+                                </button>
+
+                                <button
+                                  onClick={() => copyToClipboard(universalResult.transactionHash, 'Хеш транзакции')}
+                                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                                >
+                                  📋 Скопировать хеш
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <p className="text-blue-800 text-sm">
+                                💡 <strong>Следующие шаги:</strong> Нажмите "Подписать транзакцию" для автоматической подписи через ваш кошелек, или скопируйте хеш для ручной подписи.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Старый ручной UI */
+                      <div className="space-y-6">
                     {/* Основная форма */}
                     <div className="space-y-6 mb-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1090,7 +1329,8 @@ const SafeMultisigApp: React.FC = () => {
                       </div>
                     )}
                   </div>
-
+                    )}
+                  </div>
                 </div>
               )}
             </>

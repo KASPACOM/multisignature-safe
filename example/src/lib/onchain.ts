@@ -18,6 +18,8 @@ import {
 } from './safe-common'
 import { SafeOffChain, UniversalOperationResult } from './offchain'
 import { Network } from './network-types'
+import { ParsedFunction, FunctionFormData } from './contract-types'
+import { contractRegistry } from './contract-registry'
 
 export interface TransactionParams {
   to: string
@@ -404,6 +406,133 @@ export class SafeOnChain {
     } catch (error) {
       console.error('❌ Ошибка кодирования функции:', error)
       throw new Error(`Не удалось закодировать функцию ${functionCall.functionSignature}: ${error}`)
+    }
+  }
+
+
+
+  /**
+   * Получает базовую информацию о контракте
+   */
+  getContractInfo(contractAddress: string): {
+    address: string
+    functions: ParsedFunction[]
+  } | null {
+    console.log('📋 Получаем информацию о контракте:', contractAddress)
+
+    const contract = contractRegistry.getContract(contractAddress)
+    if (!contract) {
+      console.warn('Контракт не найден в реестре:', contractAddress)
+      return null
+    }
+
+    const functions = contractRegistry.getContractFunctions(contractAddress)
+    
+    return {
+      address: contractAddress,
+      functions
+    }
+  }
+
+  /**
+   * Создает транзакцию из структурированных данных (новый подход с ABI)
+   */
+  async createStructuredTransactionHash(
+    contractAddress: string,
+    selectedFunction: ParsedFunction,
+    formData: FunctionFormData
+  ): Promise<UniversalOperationResult> {
+    console.log('🏗️ Создаем структурированную транзакцию для текущего Safe...')
+    console.log('📋 Контракт:', contractAddress)
+    console.log('⚙️ Функция:', selectedFunction.name)
+    console.log('📝 Параметры:', formData.parameters)
+    console.log('💰 ETH Value:', formData.ethValue)
+
+    const safeSdk = this.getSafeSdk()
+
+    if (!this.currentSafeAddress) {
+      throw new Error('Safe адрес не определен')
+    }
+
+    try {
+      // Конвертируем структурированные данные в формат UniversalFunctionCall
+      const functionCall: UniversalFunctionCall = {
+        contractAddress,
+        functionSignature: selectedFunction.signature,
+        functionParams: this.convertFormDataToParams(selectedFunction, formData.parameters),
+        value: formData.ethValue || '0'
+      }
+
+      console.log('🔄 Конвертированный вызов функции:', functionCall)
+
+      // Используем существующую логику
+      return await this.createUniversalTransactionHash(functionCall)
+
+    } catch (error) {
+      console.error('❌ Ошибка создания структурированной транзакции:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Конвертирует параметры формы в массив параметров для функции
+   */
+  private convertFormDataToParams(
+    selectedFunction: ParsedFunction,
+    parameters: { [key: string]: any }
+  ): any[] {
+    console.log('🔄 Конвертируем параметры формы...')
+    
+    const params = selectedFunction.inputs.map((input, index) => {
+      const paramName = input.name || `param${index}`
+      const value = parameters[paramName]
+      
+      // Конвертируем значение в соответствии с типом
+      return this.convertParameterValue(value, input.type)
+    })
+
+    console.log('✅ Конвертированные параметры:', params)
+    return params
+  }
+
+  /**
+   * Конвертирует значение параметра в соответствии с типом Solidity
+   */
+  private convertParameterValue(value: any, type: string): any {
+    if (!value || value === '') {
+      throw new Error(`Параметр типа ${type} не может быть пустым`)
+    }
+
+    switch (type) {
+      case 'bool':
+        return value === 'true' || value === true
+      
+      case 'address':
+        if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
+          throw new Error(`Неверный формат адреса: ${value}`)
+        }
+        return value
+      
+      case 'string':
+        return value.toString()
+      
+      case 'uint256':
+      case 'uint':
+        return ethers.parseUnits(value.toString(), 0).toString()
+      
+      default:
+        if (type.startsWith('uint')) {
+          return ethers.parseUnits(value.toString(), 0).toString()
+        }
+        if (type.startsWith('bytes')) {
+          if (!/^0x[a-fA-F0-9]*$/.test(value)) {
+            throw new Error(`Неверный формат bytes для ${type}: ${value}`)
+          }
+          return value
+        }
+        
+        // Для других типов возвращаем как есть
+        return value
     }
   }
 
