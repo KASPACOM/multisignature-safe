@@ -795,7 +795,7 @@ const SafeMultisigApp: React.FC = () => {
                         onClick={handleDisconnectFromSafe}
                         className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm"
                       >
-                        🔌 Отключиться
+                        🔄 Сбросить Safe
                       </button>
                     </div>
                   </div>
@@ -844,8 +844,6 @@ const SafeMultisigApp: React.FC = () => {
 
               {network && currentSection === AppSection.CREATE_PROPOSAL && safeInfo && (
                 <div className="space-y-8">
-                  {/* Шаги 2-4: Доступны только когда Safe подключен */}
-
                   {/* Универсальные транзакции */}
                   <div className="p-6 bg-white rounded-lg shadow">
                     <h2 className="text-xl font-semibold mb-4">🎯 Универсальные вызовы функций</h2>
