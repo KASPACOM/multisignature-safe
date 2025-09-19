@@ -8,6 +8,7 @@ import { ABIParser } from './abi-parser'
 // Импорт ABI файлов
 import ERC20MintableABI from '../abi/ERC20Mintable.json'
 import ICombineRouterData from '../abi/ICombineRouter.json'
+import WKAS from '../abi/WKAS.json'
 
 
 export class ContractRegistry {
@@ -42,6 +43,11 @@ export class ContractRegistry {
         name: 'Combine Router',
         address: '0x698f56cFE6F6c994E02ac61AcD0AfEDf480Ca518',
         abi: ICombineRouterData.abi
+      },
+      {
+        name: 'WKAS',
+        address: '0x698f56cFE6F6c994E02ac61AcD0AfEDf480Ca518',
+        abi: WKAS.abi
       }
     ]
 

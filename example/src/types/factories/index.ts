@@ -3,3 +3,4 @@
 /* eslint-disable */
 export { ERC20Mintable__factory } from "./ERC20Mintable__factory";
 export { ICombineRouter__factory } from "./ICombineRouter__factory";
+export { WKAS__factory } from "./WKAS__factory";

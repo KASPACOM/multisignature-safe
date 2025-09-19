@@ -3,6 +3,8 @@
 /* eslint-disable */
 export type { ERC20Mintable } from "./ERC20Mintable";
 export type { ICombineRouter } from "./ICombineRouter";
+export type { WKAS } from "./WKAS";
 export * as factories from "./factories";
 export { ERC20Mintable__factory } from "./factories/ERC20Mintable__factory";
 export { ICombineRouter__factory } from "./factories/ICombineRouter__factory";
+export { WKAS__factory } from "./factories/WKAS__factory";
