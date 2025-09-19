@@ -59,7 +59,7 @@ export class SafeOffChain {
   private async initializeApiKit() {
     try {
       if (!this.networkConfig.stsUrl) {
-        console.warn('STS URL не настроен, некоторые функции будут недоступны')
+        console.warn('STS URL не настроен')
         return
       }
 
@@ -68,13 +68,9 @@ export class SafeOffChain {
         chainId: BigInt(this.networkConfig.chainId)
       })
 
-      console.log('🔧 SafeApiKit настройки:')
-      console.log('  📡 TX Service URL:', this.networkConfig.stsUrl)
-      console.log('  🔗 Chain ID:', this.networkConfig.chainId)
-
-      console.log('SafeApiKit инициализирован для STS:', this.networkConfig.stsUrl)
+      console.log('✅ SafeApiKit инициализирован:', this.networkConfig.stsUrl)
     } catch (error) {
-      console.error('Ошибка инициализации SafeApiKit:', error)
+      console.error('❌ Ошибка инициализации SafeApiKit:', error)
     }
   }
 
@@ -89,22 +85,17 @@ export class SafeOffChain {
       throw new Error('STS недоступен')
     }
 
-    try {
-      const safeInfo = await this.apiKit.getSafeInfo(safeAddress)
-      return {
-        address: safeInfo.address,
-        nonce: parseInt(safeInfo.nonce),
-        threshold: safeInfo.threshold,
-        owners: safeInfo.owners,
-        singleton: safeInfo.singleton,
-        modules: safeInfo.modules,
-        fallbackHandler: safeInfo.fallbackHandler,
-        guard: safeInfo.guard,
-        version: safeInfo.version
-      }
-    } catch (error) {
-      console.error('Ошибка получения информации о Safe:', error)
-      throw error
+    const safeInfo = await this.apiKit.getSafeInfo(safeAddress)
+    return {
+      address: safeInfo.address,
+      nonce: parseInt(safeInfo.nonce),
+      threshold: safeInfo.threshold,
+      owners: safeInfo.owners,
+      singleton: safeInfo.singleton,
+      modules: safeInfo.modules,
+      fallbackHandler: safeInfo.fallbackHandler,
+      guard: safeInfo.guard,
+      version: safeInfo.version
     }
   }
 
@@ -114,12 +105,7 @@ export class SafeOffChain {
       throw new Error('STS недоступен')
     }
 
-    try {
-      return await this.apiKit.getTransaction(safeTxHash)
-    } catch (error: any) {
-      console.error('Ошибка получения транзакции:', error)
-      throw error
-    }
+    return await this.apiKit.getTransaction(safeTxHash)
   }
 
   // Проверка, является ли адрес владельцем Safe
@@ -128,12 +114,11 @@ export class SafeOffChain {
       const owners = (await this.getSafeInfo(safeAddress)).owners
       return owners.map(addr => addr.toLowerCase()).includes(ownerAddress.toLowerCase())
     } catch (error) {
-      console.error('Ошибка проверки владельца:', error)
       return false
     }
   }
 
-  // Подтверждение транзакции через STS API Kit (аналог approve hash в блокчейне)
+  // Подтверждение транзакции через STS API Kit
   async confirmTransaction(
     safeTxHash: string,
     signature: string
@@ -142,32 +127,20 @@ export class SafeOffChain {
       throw new Error('STS недоступен')
     }
 
-    console.log('✅ Подтверждаем транзакцию в STS через API Kit:', safeTxHash)
-    console.log('📝 Подпись:', signature.slice(0, 20) + '...')
+    console.log('✅ Подтверждение транзакции:', safeTxHash)
 
-    try {
-      // Используем API Kit для подтверждения транзакции с подписью
-      await this.apiKit.confirmTransaction(safeTxHash, signature)
-
-      console.log('🎉 Транзакция подтверждена в STS!')
-
-    } catch (error) {
-      console.error('❌ Ошибка подтверждения транзакции:', error)
-      throw error
-    }
+    await this.apiKit.confirmTransaction(safeTxHash, signature)
+    console.log('🎉 Транзакция подтверждена в STS')
   }
 
-  // ЕДИНСТВЕННАЯ функция: проверка регистрации Safe + отправка универсальной операции в STS
+  // Отправка универсальной операции в STS
   async proposeUniversalResult(
     safeAddress: string,
     universalResult: UniversalOperationResult,
     senderAddress: string,
     origin?: string
   ): Promise<void> {
-    console.log('🚀 НАЧИНАЕМ proposeUniversalResult для транзакции:', universalResult.transactionHash)
-    console.log('   📍 Safe адрес:', safeAddress)
-    console.log('   👤 Отправитель:', senderAddress)
-    console.log('   🏷️ Источник:', origin || 'Universal Operation')
+    console.log('🚀 Отправка пропозала:', universalResult.transactionHash)
 
     if (!this.apiKit) {
       throw new Error('STS недоступен')
@@ -176,22 +149,14 @@ export class SafeOffChain {
     // Получаем подпись из транзакции
     const signature = universalResult.safeTransaction.signatures?.get(senderAddress.toLowerCase())
     if (!signature) {
-      console.log('❌ Подпись не найдена для адреса:', senderAddress.toLowerCase())
-      console.log('🔍 Доступные подписи:', Array.from(universalResult.safeTransaction.signatures.keys()))
       throw new Error('Подпись не найдена в универсальной транзакции')
     }
 
-    console.log('📤 Обрабатываем универсальную операцию:')
-    console.log('  🎯 Хеш:', universalResult.transactionHash)
-    console.log('  📍 Получатель:', universalResult.transactionDetails.to)
-    console.log('  💰 Значение:', universalResult.transactionDetails.value)
-    console.log('  📝 Nonce:', universalResult.transactionDetails.nonce)
-
     try {
-      // 1. Проверяем, зарегистрирован ли Safe в STS
-      console.log('🔍 Проверяем регистрацию Safe в STS:', safeAddress)
+      // Проверяем регистрацию Safe в STS
       await this.getSafeInfo(safeAddress)
-      // 2. Отправляем универсальную транзакцию в STS (это автоматически зарегистрирует Safe если нужно)
+      
+      // Отправляем транзакцию в STS
       const proposeTransactionProps: ProposeTransactionProps = {
         safeAddress,
         safeTransactionData: universalResult.safeTransaction.data,
@@ -201,15 +166,11 @@ export class SafeOffChain {
         origin: origin || 'Universal Operation'
       }
 
-      console.log('📨 Отправляем пропозал в STS через API Kit...')
       await this.apiKit.proposeTransaction(proposeTransactionProps)
-      console.log('🎉 Универсальная операция успешно отправлена в STS!')
-      console.log('   📍 Safe адрес:', safeAddress)
-      console.log('   🔗 Транзакция:', universalResult.transactionHash)
+      console.log('✅ Пропозал отправлен в STS:', safeAddress)
 
     } catch (error) {
-      console.error('❌ Ошибка обработки универсальной операции:', error)
-      console.error('   🔍 Детали ошибки:', error)
+      console.error('❌ Ошибка отправки пропозала:', error)
       throw error
     }
   }
@@ -220,8 +181,6 @@ export class SafeOffChain {
 
   // Получение всех пропозалов для конкретного пользователя
   async getUserProposals(filter: UserProposalsFilter): Promise<UserProposal[]> {
-    console.log('📥 Получаем пропозалы для пользователя:', filter.userAddress)
-
     const proposals: UserProposal[] = []
 
     // Получаем все Safe, где пользователь является владельцем
@@ -229,12 +188,9 @@ export class SafeOffChain {
 
     for (const safeAddress of userSafes) {
       try {
-        console.log(`🔍 Проверяем Safe: ${safeAddress}`)
-
         // Проверяем, является ли пользователь владельцем этого Safe
         const isUserOwner = await this.isOwner(safeAddress, filter.userAddress)
         if (!isUserOwner) {
-          console.log(`⚠️ Пользователь ${filter.userAddress} не является владельцем Safe ${safeAddress}`)
           continue
         }
 
@@ -243,7 +199,6 @@ export class SafeOffChain {
         proposals.push(...safeProposals)
 
       } catch (error) {
-        console.error(`❌ Ошибка получения пропозалов для Safe ${safeAddress}:`, error)
         // Продолжаем обработку других Safe
       }
     }
@@ -255,9 +210,9 @@ export class SafeOffChain {
   // Получение статистики пропозалов пользователя
   async getUserProposalsStats(userAddress: string): Promise<{
     total: number
-    pending: number // требуют подписи пользователя
-    executable: number // готовы к выполнению
-    executed: number // уже выполнены
+    pending: number
+    executable: number
+    executed: number
     byStatus: {
       needsMySignature: number
       waitingForOthers: number
@@ -265,8 +220,6 @@ export class SafeOffChain {
       executed: number
     }
   }> {
-    console.log('📊 Получаем статистику пропозалов для:', userAddress)
-
     try {
       const allProposals = await this.getUserProposals({ userAddress })
 
@@ -305,11 +258,9 @@ export class SafeOffChain {
         }
       })
 
-      console.log('📈 Статистика пропозалов:', stats)
       return stats
 
     } catch (error) {
-      console.error('❌ Ошибка получения статистики:', error)
       return {
         total: 0,
         pending: 0,
@@ -325,20 +276,12 @@ export class SafeOffChain {
     }
   }
 
-  // Получение Safe контрактов без любых пропозалов (новые Safe для создания первого пропозала)
+  // Получение Safe контрактов пользователя
   async getUserSafes(userAddress: string): Promise<string[]> {
-    console.log('🔍 Получаем Safe контракты без любых пропозалов для:', userAddress)
-    
     try {
-      // Получаем все Safe контракты пользователя
       const allSafes = await this.apiKit?.getSafesByOwner(userAddress)
-      console.log('📋 Всего Safe контрактов:', allSafes?.safes.length)
-      
-      console.log('✅ Safe контрактов без любых пропозалов:', allSafes?.safes.length)
       return allSafes?.safes || []
-      
     } catch (error) {
-      console.error('❌ Ошибка получения Safe без пропозалов:', error)
       return []
     }
   }
@@ -384,28 +327,20 @@ export class SafeOffChain {
     return filtered
   }
 
-  // Получение пропозалов - только из STS (убираем fallback на localStorage)
+  // Получение пропозалов из STS
   private async getSTSProposalsOnly(safeAddress: string): Promise<UserProposal[]> {
     if (!this.apiKit) {
-      console.log('⚠️ STS недоступен, пропозалы недоступны')
       return []
     }
 
     try {
       const response = await this.apiKit.getMultisigTransactions(safeAddress)
-
-      // Возвращаем SafeMultisigTransactionResponse напрямую
       return response.results
-
     } catch (error: any) {
-      console.error(`❌ Ошибка получения пропозалов из STS для Safe ${safeAddress}:`, error)
-
       // Если Safe не найден в STS (404), возвращаем пустой список
       if (error.status === 404 || error.message?.includes('Not Found')) {
-        console.log('⚠️ Safe не найден в STS. Возвращаем пустой список.')
         return []
       }
-
       throw error
     }
   }

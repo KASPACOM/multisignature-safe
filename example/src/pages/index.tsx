@@ -506,11 +506,23 @@ const SafeMultisigApp: React.FC = () => {
         }
       })
 
+      // Конвертируем ETH в wei (BigInt)
+      let valueInWei: bigint = 0n
+      if (universalForm.ethValue && universalForm.ethValue !== '0' && universalForm.ethValue !== '') {
+        try {
+          valueInWei = ethers.parseEther(universalForm.ethValue.toString())
+          console.log('💰 Конвертируем пользовательский ввод ETH в wei (ручной режим):', universalForm.ethValue, '→', valueInWei.toString())
+        } catch (parseError) {
+          console.error('❌ Ошибка парсинга ETH value (ручной режим):', universalForm.ethValue, parseError)
+          throw new Error(`Неверный формат ETH value: ${universalForm.ethValue}`)
+        }
+      }
+
       const functionCall: UniversalFunctionCall = {
         contractAddress: universalForm.contractAddress,
         functionSignature: universalForm.functionSignature,
         functionParams: convertedParams,
-        value: universalForm.ethValue || '0'
+        value: valueInWei
       }
 
       console.log('🎯 Создаем универсальный хеш транзакции для:', functionCall)

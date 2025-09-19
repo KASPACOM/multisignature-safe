@@ -184,9 +184,21 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
             const stsTransaction = await safeOffChain.getTransaction(proposal.safeTxHash)
             
             // 2. Восстанавливаем SafeTransaction из данных STS
+            // Конвертируем value из STS (строка в wei) в BigInt
+            let valueFromSTS: bigint = 0n
+            if (stsTransaction.value && stsTransaction.value !== '0') {
+              try {
+                valueFromSTS = BigInt(stsTransaction.value)
+                console.log('💰 Конвертируем value из STS в BigInt для подписи:', stsTransaction.value, '→', valueFromSTS.toString())
+              } catch (parseError) {
+                console.error('❌ Ошибка парсинга value из STS для подписи:', stsTransaction.value, parseError)
+                valueFromSTS = 0n
+              }
+            }
+            
             const safeTransaction = await safeOnChain.createSafeTransaction({
               to: stsTransaction.to,
-              value: stsTransaction.value || '0',
+              value: valueFromSTS,
               data: stsTransaction.data || '0x'
             })
             

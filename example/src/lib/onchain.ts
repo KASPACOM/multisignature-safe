@@ -23,7 +23,7 @@ import { contractRegistry } from './contract-registry'
 
 export interface TransactionParams {
   to: string
-  value: string
+  value: bigint // Теперь всегда в wei как BigInt
   data: string
 }
 
@@ -47,7 +47,7 @@ export interface UniversalFunctionCall {
   contractAddress: string
   functionSignature: string
   functionParams: any[]
-  value?: string
+  value?: bigint // Теперь в wei как BigInt
 }
 
 interface ExecuteTransactionResponse {
@@ -68,11 +68,6 @@ export class SafeOnChain {
 
   constructor(network: Network) {
     this.network = network
-    console.log('🌐 SafeOnChain: Инициализация с Network:', {
-      chainId: network.id.toString(),
-      hasProvider: !!network.provider,
-      hasSigner: !!network.signer
-    })
   }
 
   private sortOwners(owners: string[]): string[] {
@@ -94,24 +89,15 @@ export class SafeOnChain {
 
   async createSafeWithForm(form: SafeCreationForm): Promise<Safe> {
     const { owners, threshold } = form
-
-    // Сортируем владельцев для консистентности адреса Safe
     const sortedOwners = this.sortOwners(owners)
 
-    console.log('🚀 Создание Safe с формой:', {
-      originalOwners: owners,
-      sortedOwners,
-      threshold
-    })
+    console.log('🚀 Создание Safe:', { owners: owners.length, threshold })
 
     const safeAccountConfig: SafeAccountConfig = {
       owners: sortedOwners,
       threshold,
       fallbackHandler: form.fallbackHandler || this.networkConfig.contracts.compatibilityFallbackHandler
     }
-
-    console.log('📋 SafeAccountConfig:', safeAccountConfig)
-    console.log('🌐 Contract networks:', this.contractNetworks)
 
     const predictedSafe: PredictedSafeProps = {
       safeAccountConfig,
@@ -120,73 +106,38 @@ export class SafeOnChain {
       }
     }
 
-    // Используем исправленную функцию getSafeConfig
-    console.log('🔍 Network eip1193Provider:', this.network.eip1193Provider)
-
     const safeConfig = await getSafeConfig(this.network, {
       predictedSafe,
       contractNetworks: this.contractNetworks
     })
 
     try {
-      console.log('🔧 Инициализируем Safe SDK...', safeConfig)
       const safeSdk = await Safe.init(safeConfig)
-
-      console.log('🔮 Получаем предсказанный адрес...')
       const predictedAddress = await safeSdk.getAddress()
-      console.log('📍 Predicted Safe address:', predictedAddress)
+      console.log('📍 Предсказанный адрес Safe:', predictedAddress)
 
-
-      const provider = this.network.provider
-      const existingCode = await provider.getCode(predictedAddress)
-
-      console.log('🔍 Проверка существующего кода:')
-      console.log('  📍 Адрес:', predictedAddress)
-      console.log('  📋 Код:', existingCode)
-      console.log('  📏 Длина:', existingCode?.length || 0)
-      console.log('  ✅ Условие existingCode:', !!existingCode)
-      console.log('  ✅ Условие !== "0x":', existingCode !== '0x')
-      console.log('  ✅ Условие length > 2:', (existingCode?.length || 0) > 2)
-      console.log('  🎯 Общий результат:', !!(existingCode && existingCode !== '0x' && existingCode.length > 2))
+      const existingCode = await this.network.provider.getCode(predictedAddress)
 
       if (existingCode && existingCode !== '0x' && existingCode.length > 2) {
-        console.log('🔍 По адресу есть контракт, проверяем это ли Safe...')
-        console.log('📍 Адрес:', predictedAddress)
-
+        console.log('🔍 Safe уже существует, подключаемся...')
         try {
-
           const existingSafeConfig = await getSafeConfig(this.network, {
             safeAddress: predictedAddress,
             contractNetworks: this.contractNetworks
           })
 
-          console.log('🔄 Пробуем инициализировать как Safe...')
           const existingSafeSdk = await Safe.init(existingSafeConfig)
-
-
-          console.log('✅ Это действительно Safe! Подключаемся к нему...')
-          console.log('🔄 ПЕРЕКЛЮЧЕНИЕ: PREDICT MODE → ADDRESS MODE')
-          console.log('👥 Исходные владельцы:', form.owners)
-          console.log('👥 Отсортированные владельцы:', sortedOwners)
-          console.log('🔢 Порог:', form.threshold)
-
-
           this.safeSdk = existingSafeSdk
           this.currentSafeAddress = predictedAddress
-
-          console.log('🔗 Подключились к существующему Safe в ADDRESS MODE:', predictedAddress)
+          console.log('✅ Подключились к существующему Safe')
           return existingSafeSdk
-
         } catch (error) {
-          console.log('⚠️ Контракт по адресу существует, но это не Safe:', error)
-          console.log('🚀 Продолжаем создание нового Safe...')
-
+          console.log('⚠️ Контракт существует, но это не Safe - создаем новый')
         }
       }
 
-      console.log('✅ Адрес свободен, создаем Safe...')
-
-      console.log('🛠️ Deploying Safe в PREDICT MODE...')
+      // Деплоим новый Safe
+      console.log('🛠️ Деплоим новый Safe...')
       const deploymentTransaction = await safeSdk.createSafeDeploymentTransaction()
       const txResponse = await this.network.signer.sendTransaction({
         to: deploymentTransaction.to,
@@ -194,32 +145,13 @@ export class SafeOnChain {
         data: deploymentTransaction.data
       })
 
-      console.log('📝 Safe deployment transaction:', txResponse.hash)
-
-      const receipt = await txResponse.wait?.()
-      console.log('✅ Safe deployed in block:', receipt?.blockNumber)
+      await txResponse.wait?.()
 
       const deployedSafeAddress = await safeSdk.getAddress()
       this.safeSdk = safeSdk
       this.currentSafeAddress = deployedSafeAddress
 
-      console.log('🎉 Safe создан и подключен в ADDRESS MODE:', deployedSafeAddress)
-
-      const [version, owners, threshold, nonce, balance] = await Promise.all([
-        safeSdk.getContractVersion(),
-        safeSdk.getOwners(),
-        safeSdk.getThreshold(),
-        safeSdk.getNonce(),
-        safeSdk.getBalance()
-      ])
-
-      console.log('📊 Информация о Safe:')
-      console.log('  🔍 Версия:', version)
-      console.log('  👥 Владельцы:', owners)
-      console.log('  🔢 Порог:', threshold)
-      console.log('  📝 Nonce:', nonce)
-      console.log('  💰 Баланс:', balance)
-
+      console.log('✅ Safe создан:', deployedSafeAddress)
       return safeSdk
 
     } catch (error: any) {
@@ -229,11 +161,7 @@ export class SafeOnChain {
   }
 
   async connectToSafeWithForm(form: SafeConnectionForm): Promise<Safe> {
-    console.log('🔌 Подключение к Safe с формой:')
-    console.log('  📍 Адрес:', form.safeAddress)
-    console.log('  👥 Владельцы:', form.owners)
-    console.log('  🔢 Порог:', form.threshold)
-    console.log('  🔖 Версия:', form.safeVersion)
+    console.log('🔌 Подключение к Safe:', form.safeAddress)
 
     try {
       const safeConfig = await getSafeConfig(this.network, {
@@ -241,35 +169,12 @@ export class SafeOnChain {
         contractNetworks: this.contractNetworks,
       })
 
-      console.log('🔧 Инициализируем Safe SDK для СУЩЕСТВУЮЩЕГО Safe...')
       const safeSdk = await Safe.init(safeConfig)
-
       this.safeSdk = safeSdk
       this.currentSafeAddress = form.safeAddress
 
-      console.log('✅ Safe успешно подключен:', form.safeAddress)
-
-      const [actualOwners, actualThreshold, nonce, balance] = await Promise.all([
-        safeSdk.getOwners(),
-        safeSdk.getThreshold(),
-        safeSdk.getNonce(),
-        safeSdk.getBalance()
-      ])
-
-      console.log('📊 Информация о подключенном Safe:')
-      console.log('  👥 Владельцы:', actualOwners)
-      console.log('  🔢 Порог:', actualThreshold)
-      console.log('  📝 Nonce:', nonce)
-      console.log('  💰 Баланс:', ethers.formatEther(balance), 'ETH')
-
-      if (actualOwners.length !== form.owners.length || actualThreshold !== form.threshold) {
-        console.warn('⚠️ Параметры формы не соответствуют реальным параметрам Safe!')
-        console.warn('  Форма владельцы/порог:', form.owners.length, '/', form.threshold)
-        console.warn('  Реальные владельцы/порог:', actualOwners.length, '/', actualThreshold)
-      }
-
+      console.log('✅ Safe подключен:', form.safeAddress)
       return safeSdk
-
     } catch (error) {
       console.error('❌ Ошибка подключения к Safe:', error)
       this.safeSdk = null
@@ -280,68 +185,38 @@ export class SafeOnChain {
 
 
   disconnect(): void {
-    console.log('🔌 Отключение от Safe:', this.currentSafeAddress)
     this.safeSdk = null
     this.currentSafeAddress = null
   }
 
   async getSafeAddressByForm(form: SafeCreationForm): Promise<string> {
-    // Сортируем владельцев для консистентности адреса Safe
     const sortedOwners = this.sortOwners(form.owners)
 
-    console.log('🔮 Получаем предсказанный адрес Safe по форме...')
-    console.log('👥 Исходные владельцы:', form.owners)
-    console.log('👥 Отсортированные владельцы:', sortedOwners)
-    console.log('🔢 Порог:', form.threshold)
-
-    try {
-      const predictedSafe: PredictedSafeProps = {
-        safeAccountConfig: {
-          owners: sortedOwners,
-          threshold: form.threshold,
-          fallbackHandler: form.fallbackHandler || this.networkConfig.contracts.compatibilityFallbackHandler
-        },
-        safeDeploymentConfig: {
-          safeVersion: '1.4.1'
-        }
+    const predictedSafe: PredictedSafeProps = {
+      safeAccountConfig: {
+        owners: sortedOwners,
+        threshold: form.threshold,
+        fallbackHandler: form.fallbackHandler || this.networkConfig.contracts.compatibilityFallbackHandler
+      },
+      safeDeploymentConfig: {
+        safeVersion: '1.4.1'
       }
-
-      const safeConfig = await getSafeConfig(this.network, {
-        predictedSafe,
-        contractNetworks: this.contractNetworks,
-      })
-
-      const safeSdk = await Safe.init(safeConfig)
-      const predictedAddress = await safeSdk.getAddress()
-
-      console.log('📍 Предсказанный адрес Safe:', predictedAddress)
-      return predictedAddress
-
-    } catch (error) {
-      console.error('❌ Ошибка получения адреса Safe:', error)
-      throw error
     }
+
+    const safeConfig = await getSafeConfig(this.network, {
+      predictedSafe,
+      contractNetworks: this.contractNetworks,
+    })
+
+    const safeSdk = await Safe.init(safeConfig)
+    return await safeSdk.getAddress()
   }
 
   async isSafeDeployed(safeAddress: string): Promise<boolean> {
     try {
-      const provider = this.network.provider
-      const code = await provider.getCode(safeAddress)
-
-      console.log(`🔍 Проверка Safe по адресу ${safeAddress}:`, {
-        codeLength: code.length,
-        hasCode: code && code !== '0x' && code.length > 2
-      })
-
-      if (!code || code === '0x' || code.length <= 2) {
-        console.log('❌ Safe не найден - нет кода контракта')
-        return false
-      }
-
-      console.log('✅ Safe найден - есть код контракта')
-      return true
+      const code = await this.network.provider.getCode(safeAddress)
+      return !!(code && code !== '0x' && code.length > 2)
     } catch (error) {
-      console.log('❌ Ошибка проверки Safe по адресу:', safeAddress, error)
       return false
     }
   }
@@ -353,29 +228,14 @@ export class SafeOnChain {
       throw new Error('Адрес Safe не определен')
     }
 
-    const isDeployed = await safeSdk.isSafeDeployed()
-
-    console.log('🔍 Safe деплоен:', isDeployed)
-    console.log('🔍 Safe safeSdk.getOwners:', await safeSdk.getOwners())
-    console.log('🔍 Safe safeSdk.getThreshold:', await safeSdk.getThreshold())
-    console.log('🔍 Safe safeSdk.getBalance:', await safeSdk.getBalance())
-    console.log('🔍 Safe safeSdk.getNonce:', await safeSdk.getNonce())
-    console.log('🔍 Safe safeSdk.getContractVersion:', await safeSdk.getContractVersion())
-
-    const [owners, threshold, balance, nonce, version] = await Promise.all([
+    const [owners, threshold, balance, nonce, version, isDeployed] = await Promise.all([
       safeSdk.getOwners(),
       safeSdk.getThreshold(),
       safeSdk.getBalance(),
       safeSdk.getNonce(),
-      safeSdk.getContractVersion()
+      safeSdk.getContractVersion(),
+      safeSdk.isSafeDeployed()
     ])
-
-    console.log('📊 Информация о Safe:')
-    console.log('  👥 Владельцы:', owners)
-    console.log('  🔢 Порог:', threshold)
-    console.log('  💰 Баланс:', ethers.formatEther(balance), 'ETH')
-    console.log('  📝 Nonce:', nonce)
-    console.log('  🔖 Версия:', version)
 
     return {
       address: this.currentSafeAddress,
@@ -384,115 +244,76 @@ export class SafeOnChain {
       balance: ethers.formatEther(balance),
       nonce,
       version,
-      isDeployed: await safeSdk.isSafeDeployed()
+      isDeployed
     }
   }
 
   encodeFunctionCall(functionCall: UniversalFunctionCall): string {
     try {
-      console.log('🔧 Кодируем вызов функции:', functionCall.functionSignature)
-      console.log('📝 Параметры:', functionCall.functionParams)
-
       const functionAbi = [`function ${functionCall.functionSignature}`]
       const contractInterface = new ethers.Interface(functionAbi)
-
       const functionName = functionCall.functionSignature.split('(')[0]
 
-      const encodedData = contractInterface.encodeFunctionData(functionName, functionCall.functionParams)
-
-      console.log('✅ Закодированные данные:', encodedData)
-      return encodedData
-
+      return contractInterface.encodeFunctionData(functionName, functionCall.functionParams)
     } catch (error) {
-      console.error('❌ Ошибка кодирования функции:', error)
       throw new Error(`Не удалось закодировать функцию ${functionCall.functionSignature}: ${error}`)
     }
   }
 
 
 
-  /**
-   * Получает базовую информацию о контракте
-   */
   getContractInfo(contractAddress: string): {
     address: string
     functions: ParsedFunction[]
   } | null {
-    console.log('📋 Получаем информацию о контракте:', contractAddress)
-
     const contract = contractRegistry.getContract(contractAddress)
     if (!contract) {
-      console.warn('Контракт не найден в реестре:', contractAddress)
       return null
     }
 
     const functions = contractRegistry.getContractFunctions(contractAddress)
-    
+
     return {
       address: contractAddress,
       functions
     }
   }
 
-  /**
-   * Создает транзакцию из структурированных данных (новый подход с ABI)
-   */
   async createStructuredTransactionHash(
     contractAddress: string,
     selectedFunction: ParsedFunction,
     formData: FunctionFormData
   ): Promise<UniversalOperationResult> {
-    console.log('🏗️ Создаем структурированную транзакцию для текущего Safe...')
-    console.log('📋 Контракт:', contractAddress)
-    console.log('⚙️ Функция:', selectedFunction.name)
-    console.log('📝 Параметры:', formData.parameters)
-    console.log('💰 ETH Value:', formData.ethValue)
-
-    const safeSdk = this.getSafeSdk()
-
     if (!this.currentSafeAddress) {
       throw new Error('Safe адрес не определен')
     }
 
-    try {
-      // Конвертируем структурированные данные в формат UniversalFunctionCall
-      const functionCall: UniversalFunctionCall = {
-        contractAddress,
-        functionSignature: selectedFunction.signature,
-        functionParams: this.convertFormDataToParams(selectedFunction, formData.parameters),
-        value: formData.ethValue || '0'
-      }
-
-      console.log('🔄 Конвертированный вызов функции:', functionCall)
-
-      // Используем существующую логику
-      return await this.createUniversalTransactionHash(functionCall)
-
-    } catch (error) {
-      console.error('❌ Ошибка создания структурированной транзакции:', error)
-      throw error
+    // Конвертируем ETH в wei (BigInt)
+    let valueInWei: bigint = 0n
+    if (formData.ethValue && formData.ethValue !== '0' && formData.ethValue !== '') {
+      valueInWei = ethers.parseEther(formData.ethValue.toString())
     }
+
+    // Конвертируем структурированные данные в формат UniversalFunctionCall
+    const functionCall: UniversalFunctionCall = {
+      contractAddress,
+      functionSignature: selectedFunction.signature,
+      functionParams: this.convertFormDataToParams(selectedFunction, formData.parameters),
+      value: valueInWei
+    }
+
+    return await this.createUniversalTransactionHash(functionCall)
   }
 
-  /**
-   * Конвертирует параметры формы в массив параметров для функции
-   */
   private convertFormDataToParams(
     selectedFunction: ParsedFunction,
     parameters: { [key: string]: any }
   ): any[] {
-    console.log('🔄 Конвертируем параметры формы...')
-    
-    const params = selectedFunction.inputs.map((input, index) => {
+    return selectedFunction.inputs.map((input, index) => {
       const paramName = input.name || `param${index}`
       const value = parameters[paramName]
-      
-      // Конвертируем значение в соответствии с типом
       return this.convertParameterValue(value, input.type)
     })
-
-    console.log('✅ Конвертированные параметры:', params)
-    return params
   }
 
   /**
@@ -506,20 +327,20 @@ export class SafeOnChain {
     switch (type) {
       case 'bool':
         return value === 'true' || value === true
-      
+
       case 'address':
         if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
           throw new Error(`Неверный формат адреса: ${value}`)
         }
         return value
-      
+
       case 'string':
         return value.toString()
-      
+
       case 'uint256':
       case 'uint':
         return ethers.parseUnits(value.toString(), 0).toString()
-      
+
       default:
         if (type.startsWith('uint')) {
           return ethers.parseUnits(value.toString(), 0).toString()
@@ -530,7 +351,7 @@ export class SafeOnChain {
           }
           return value
         }
-        
+
         // Для других типов возвращаем как есть
         return value
     }
@@ -539,58 +360,39 @@ export class SafeOnChain {
   async createUniversalTransactionHash(
     functionCall: UniversalFunctionCall
   ): Promise<UniversalOperationResult> {
-    console.log('🏗️ Создаем универсальную транзакцию для текущего Safe...')
-
-    const safeSdk = this.getSafeSdk()
-
     if (!this.currentSafeAddress) {
       throw new Error('Safe адрес не определен')
     }
 
-    try {
-      const encodedData = this.encodeFunctionCall(functionCall)
+    console.log('🏗️ Создание транзакции:', {
+      contract: functionCall.contractAddress,
+      function: functionCall.functionSignature,
+      value: ethers.formatEther(functionCall.value || 0n) + ' ETH'
+    })
 
-      const transactionParams: TransactionParams = {
-        to: functionCall.contractAddress,
-        value: functionCall.value || '0',
-        data: encodedData
+    const encodedData = this.encodeFunctionCall(functionCall)
+
+    const transactionParams: TransactionParams = {
+      to: functionCall.contractAddress,
+      value: functionCall.value || 0n,
+      data: encodedData
+    }
+
+    const safeTransaction = await this.createSafeTransaction(transactionParams)
+    const transactionHash = await this.getSafeSdk().getTransactionHash(safeTransaction)
+
+    console.log('✅ Хеш транзакции создан:', transactionHash)
+
+    return {
+      transactionHash,
+      safeTransaction,
+      encodedData,
+      transactionDetails: {
+        to: transactionParams.to,
+        value: ethers.formatEther(transactionParams.value),
+        data: transactionParams.data,
+        nonce: safeTransaction.data.nonce
       }
-
-      console.log('📋 Параметры транзакции:')
-      console.log(`   - Safe: ${this.currentSafeAddress}`)
-      console.log(`   - To: ${transactionParams.to}`)
-      console.log(`   - Value: ${transactionParams.value} ETH`)
-      console.log(`   - Data: ${transactionParams.data}`)
-
-      const safeTransaction = await this.createSafeTransaction(transactionParams)
-
-      const nonce = safeTransaction.data.nonce
-      console.log(`   - Nonce (из транзакции): ${nonce}`)
-
-      // Примечание: Валидация транзакции пропущена на этапе создания хеша,
-      // так как транзакция еще не подписана. Валидация будет выполнена
-      // перед выполнением транзакции, когда все подписи будут собраны.
-      console.log('ℹ️ Создаем хеш для неподписанной транзакции (валидация будет позже)')
-
-      const transactionHash = await safeSdk.getTransactionHash(safeTransaction)
-
-      console.log('🎯 Хеш транзакции для подписи:', transactionHash)
-
-      return {
-        transactionHash,
-        safeTransaction,
-        encodedData,
-        transactionDetails: {
-          to: transactionParams.to,
-          value: transactionParams.value,
-          data: transactionParams.data,
-          nonce
-        }
-      }
-
-    } catch (error) {
-      console.error('❌ Ошибка создания универсальной транзакции:', error)
-      throw error
     }
   }
 
@@ -598,96 +400,124 @@ export class SafeOnChain {
     transactionParams: TransactionParams
   ): Promise<SafeTransaction> {
     const safeSdk = this.getSafeSdk()
+    const valueInWei = transactionParams.value.toString()
 
     const metaTransactionData: MetaTransactionData = {
       to: transactionParams.to,
-      value: ethers.parseEther(transactionParams.value).toString(),
+      value: valueInWei,
       data: transactionParams.data
     }
 
+    // Для ETH транзакций оцениваем газ
+    let safeTxGas = '0'
+    if (transactionParams.value > 0n) {
+      const gasEstimate = await this.network.provider.estimateGas({
+        to: transactionParams.to,
+        value: transactionParams.value.toString(),
+        data: transactionParams.data,
+        from: this.currentSafeAddress!
+      })
+      safeTxGas = gasEstimate.toString()
+    }
+
     const safeTransaction = await safeSdk.createTransaction({
-      transactions: [metaTransactionData]
+      transactions: [metaTransactionData],
+      options: {
+        safeTxGas: safeTxGas
+      }
     })
+
+
     return safeTransaction
   }
 
   async executeTransactionByHash(safeTxHash: string, safeOffChain?: SafeOffChain): Promise<string> {
-    console.log('🚀 SafeOnChain: Выполнение транзакции по хешу:', safeTxHash)
-
     if (!this.isConnected()) {
       throw new Error('Safe не подключен')
     }
 
-    try {
-      let safeTransaction: SafeTransaction
-
-      if (safeOffChain) {
-
-        console.log('📡 Восстанавливаем транзакцию из STS...')
-        const txFromSTS = await safeOffChain.getTransaction(safeTxHash)
-
-        safeTransaction = await this.createSafeTransaction({
-          to: txFromSTS.to,
-          value: txFromSTS.value || '0',
-          data: txFromSTS.data || '0x'
-        })
-
-
-        if (txFromSTS.nonce !== undefined) {
-          safeTransaction.data.nonce = parseInt(txFromSTS.nonce.toString())
-        }
-
-        // Восстанавливаем ВСЕ подписи из confirmations STS (не фильтруем по типу)
-        if (txFromSTS.confirmations && txFromSTS.confirmations.length > 0) {
-          console.log(`🔄 Восстанавливаем ${txFromSTS.confirmations.length} подтверждений из STS...`)
-
-          for (const confirmation of txFromSTS.confirmations) {
-            if (confirmation.signature && confirmation.signature !== '0x') {
-              console.log(`📝 Добавляем подпись от ${confirmation.owner} (тип: ${confirmation.signatureType})`)
-
-              // Создаем подпись для SafeSDK
-              const signature = {
-                signer: confirmation.owner.toLowerCase(),
-                data: confirmation.signature,
-                isContractSignature: false,
-                staticPart: () => confirmation.signature,
-                dynamicPart: () => ''
-              }
-
-              safeTransaction.addSignature(signature)
-            } else if (confirmation.signatureType !== 'EOA') {
-              // Для non-EOA подтверждений (approve hash) создаем специальную подпись
-              console.log(`📝 Добавляем approve hash подтверждение от ${confirmation.owner}`)
-
-              const approveSignature = {
-                signer: confirmation.owner.toLowerCase(),
-                data: `0x${confirmation.owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
-                isContractSignature: false,
-                staticPart: () => `0x${confirmation.owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
-                dynamicPart: () => ''
-              }
-
-              safeTransaction.addSignature(approveSignature)
-            }
-          }
-
-          console.log(`✅ Восстановлено ${safeTransaction.signatures.size} подтверждений из STS`)
-        }
-
-        console.log('✅ Транзакция восстановлена из STS')
-      } else {
-        throw new Error('Для выполнения транзакции по хешу требуется SafeOffChain для восстановления данных')
-      }
-
-      const result = await this.executeTransaction(safeTransaction)
-
-      console.log('✅ SafeOnChain: Транзакция выполнена по хешу:', result.hash)
-      return result.hash
-
-    } catch (error) {
-      console.error('❌ SafeOnChain: Ошибка выполнения по хешу:', error)
-      throw error
+    if (!safeOffChain) {
+      throw new Error('Для выполнения транзакции по хешу требуется SafeOffChain для восстановления данных')
     }
+
+    const txFromSTS = await safeOffChain.getTransaction(safeTxHash)
+
+    // Конвертируем value из STS в BigInt
+    const valueFromSTS = txFromSTS.value && txFromSTS.value !== '0'
+      ? BigInt(txFromSTS.value)
+      : 0n
+
+    console.log('💰 Value из STS:', txFromSTS.value, 'wei')
+    console.log('💰 Value как BigInt:', valueFromSTS.toString(), 'wei')
+
+    const safeTransaction = await this.createSafeTransaction({
+      to: txFromSTS.to,
+      value: valueFromSTS,
+      data: txFromSTS.data || '0x'
+    })
+
+    // Восстанавливаем параметры из STS
+    if (txFromSTS.nonce !== undefined) {
+      safeTransaction.data.nonce = parseInt(txFromSTS.nonce.toString())
+    }
+    
+    if (txFromSTS.safeTxGas) {
+      safeTransaction.data.safeTxGas = txFromSTS.safeTxGas
+    }
+
+    if (txFromSTS.baseGas) {
+      safeTransaction.data.baseGas = txFromSTS.baseGas
+    }
+
+    if (txFromSTS.gasPrice) {
+      safeTransaction.data.gasPrice = txFromSTS.gasPrice
+    }
+
+    if (txFromSTS.gasToken) {
+      safeTransaction.data.gasToken = txFromSTS.gasToken
+    }
+
+    if (txFromSTS.refundReceiver) {
+      safeTransaction.data.refundReceiver = txFromSTS.refundReceiver
+    }
+
+    // Проверяем хеш
+    const restoredTxHash = await this.getSafeSdk().getTransactionHash(safeTransaction)
+    if (restoredTxHash !== safeTxHash) {
+      throw new Error('Не удалось восстановить транзакцию с правильным хешем')
+    }
+
+    // Восстанавливаем подписи
+    if (txFromSTS.confirmations?.length) {
+      const sortedConfirmations = [...txFromSTS.confirmations].sort((a, b) =>
+        a.owner.toLowerCase().localeCompare(b.owner.toLowerCase())
+      )
+
+      for (const confirmation of sortedConfirmations) {
+        if (confirmation.signature && confirmation.signature !== '0x') {
+          const signature = {
+            signer: confirmation.owner.toLowerCase(),
+            data: confirmation.signature,
+            isContractSignature: false,
+            staticPart: () => confirmation.signature,
+            dynamicPart: () => ''
+          }
+          safeTransaction.addSignature(signature)
+        } else if (confirmation.signatureType !== 'EOA') {
+          const approveSignature = {
+            signer: confirmation.owner.toLowerCase(),
+            data: `0x${confirmation.owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
+            isContractSignature: false,
+            staticPart: () => `0x${confirmation.owner.slice(2).padStart(64, '0')}${'0'.repeat(64)}01`,
+            dynamicPart: () => ''
+          }
+          safeTransaction.addSignature(approveSignature)
+        }
+      }
+    }
+
+    const result = await this.executeTransaction(safeTransaction)
+    return result.hash
   }
 
   async executeTransaction(safeTransaction: SafeTransaction): Promise<ExecuteTransactionResponse> {
@@ -708,44 +538,24 @@ export class SafeOnChain {
     }
 
     const threshold = await safeSdk.getThreshold()
-    const txHash = await safeSdk.getTransactionHash(safeTransaction)
-
-    console.log('🚀 Выполняем транзакцию с подписями из STS...')
-    console.log('📋 Хэш транзакции:', txHash)
-
-    // Получаем подписи из транзакции (все приходят из STS)
     const signatures = safeTransaction.signatures.size
-    const signers = Array.from(safeTransaction.signatures.values()).map(sig => sig.signer)
-
-    console.log(`🎯 Требуется: ${threshold}`)
-    console.log(`📝 Подписей в транзакции: ${signatures}`)
-    console.log(`👥 Подписанты: [${signers.join(', ')}]`)
 
     if (signatures < threshold) {
       const missing = threshold - signatures
       throw new Error(`Недостаточно подписей! Требуется: ${threshold}, есть: ${signatures}. Нужно еще ${missing} подписей.`)
     }
 
-    // Финальная валидация транзакции перед выполнением
-    console.log('🔍 Финальная проверка валидности транзакции перед выполнением...')
-    try {
-      const isValid = await safeSdk.isValidTransaction(safeTransaction)
-      
-      if (!isValid) {
-        console.error('❌ Транзакция не прошла финальную валидацию!')
-        throw new Error('Транзакция не может быть выполнена: не прошла финальную валидацию Safe SDK')
-      }
-      
-      console.log('✅ Транзакция прошла финальную валидацию успешно')
-    } catch (validationError) {
-      console.error('❌ Ошибка финальной валидации транзакции:', validationError)
-      throw new Error(`Транзакция не может быть выполнена: ${validationError}`)
-    }
+    // Диагностика перед выполнением
+    const txValue = BigInt(safeTransaction.data.value)
+    const safeAddress = await safeSdk.getAddress()
+    const providerBalance = await this.network.provider.getBalance(safeAddress)
+
+    console.log('🏦 Safe адрес:', safeAddress)
+    console.log('🏦 Баланс Safe контракта:', providerBalance.toString(), 'wei')
+    console.log('💸 Значение транзакции:', txValue.toString(), 'wei')
+    console.log('🔍 Safe transaction data:', JSON.stringify(safeTransaction.data, null, 2))
 
     const executeTxResponse = await safeSdk.executeTransaction(safeTransaction)
-
-    console.log('✅ Транзакция выполнена!')
-    console.log('🔗 Хэш выполнения:', executeTxResponse.hash)
 
     return {
       hash: executeTxResponse.hash,
