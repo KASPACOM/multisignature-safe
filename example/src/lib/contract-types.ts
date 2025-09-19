@@ -22,6 +22,7 @@ export interface ContractABI {
   name: string
   address: string
   abi: any[]
+  parsedFunctions: ParsedFunction[]
 }
 
 

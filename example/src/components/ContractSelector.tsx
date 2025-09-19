@@ -58,7 +58,8 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
         const customContract: ContractABI = {
           name: `Custom Contract (${address.slice(0, 6)}...)`,
           address,
-          abi: []
+          abi: [],
+          parsedFunctions: []
         }
         onContractSelect(customContract)
       }

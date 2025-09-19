@@ -10,22 +10,42 @@ interface ContractDropdownProps {
   onContractSelect: (contract: ContractABI | null) => void
   selectedContract: ContractABI | null
   placeholder?: string
+  isLoading?: boolean
+  error?: string | null
 }
 
 export const ContractDropdown: React.FC<ContractDropdownProps> = ({
   onContractSelect,
   selectedContract,
-  placeholder = "Выберите контракт..."
+  placeholder = "Выберите контракт...",
+  isLoading = false,
+  error = null
 }) => {
   const [contracts, setContracts] = useState<ContractABI[]>([])
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     // Загружаем все доступные контракты
-    const allContracts = contractRegistry.getAllContracts()
-    setContracts(allContracts)
-    console.log('📋 Загружены контракты для dropdown:', allContracts.length)
-  }, [])
+    const loadContracts = () => {
+      const allContracts = contractRegistry.getAllContracts()
+      setContracts(allContracts)
+      console.log('📋 Загружены контракты для dropdown:', allContracts.length)
+    }
+
+    // Загружаем сразу
+    loadContracts()
+
+    // Обновляем контракты каждые 2 секунды, если они еще загружаются
+    const interval = setInterval(() => {
+      const status = contractRegistry.getLoadingStatus()
+      if (!status.isLoading && status.hasContracts) {
+        loadContracts()
+        clearInterval(interval)
+      }
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [isLoading])
 
   const handleContractSelect = (contract: ContractABI) => {
     onContractSelect(contract)
@@ -47,11 +67,18 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
       <div className="relative">
         <button
           type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="relative w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+          onClick={() => !isLoading && setIsOpen(!isOpen)}
+          disabled={isLoading}
+          className={`relative w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-3 text-left focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-sm ${
+            isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+          }`}
         >
           <span className="block truncate">
-            {selectedContract ? (
+            {isLoading ? (
+              <span className="text-gray-500">🔄 Загружаем контракты...</span>
+            ) : error ? (
+              <span className="text-red-500">❌ Ошибка загрузки</span>
+            ) : selectedContract ? (
               <span className="font-medium">{selectedContract.name}</span>
             ) : (
               <span className="text-gray-500">{placeholder}</span>
@@ -64,7 +91,7 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
           </span>
         </button>
 
-        {isOpen && (
+        {isOpen && !isLoading && !error && (
           <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
             {selectedContract && (
               <div

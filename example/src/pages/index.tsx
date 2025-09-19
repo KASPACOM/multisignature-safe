@@ -22,6 +22,7 @@ import { NETWORK_COLORS, getSupportedNetworks } from '../lib/constants'
 import { Network, WalletState, ConnectionStatus } from '../lib/network-types'
 import { networkProvider } from '../lib/network-provider'
 import { ContractABI, ParsedFunction, FunctionFormData } from '../lib/contract-types'
+import { contractRegistry } from '../lib/contract-registry'
 
 interface SafeInfo {
   address: string
@@ -95,6 +96,10 @@ const SafeMultisigApp: React.FC = () => {
   // Результат подписи хеша
   const [signatureResult, setSignatureResult] = useState<SignatureResult | null>(null)
 
+  // Состояние загрузки контрактов
+  const [contractsLoading, setContractsLoading] = useState<boolean>(false)
+  const [contractsError, setContractsError] = useState<string | null>(null)
+
   // Состояние загрузки
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({})
   const [error, setError] = useState<string>('')
@@ -139,6 +144,13 @@ const SafeMultisigApp: React.FC = () => {
   useEffect(() => {
     if (network) {
       console.log('🔄 Создание нового SafeOnChain из-за изменения Network')
+
+      // Инициализируем ContractRegistry для новой сети
+      console.log('🔗 Инициализируем ContractRegistry для chainId:', network.id)
+      contractRegistry.initializeForChain(network.id)
+      
+      // Загружаем контракты асинхронно
+      loadContractsForNetwork()
 
       // Если был подключен Safe, нужно переподключиться с новым Network
       const currentSafeAddress = safeInfo?.address
@@ -250,6 +262,26 @@ const SafeMultisigApp: React.FC = () => {
     setTimeout(() => setSuccess(''), 5000)
   }
 
+  // Загрузка контрактов для текущей сети
+  const loadContractsForNetwork = async () => {
+    setContractsLoading(true)
+    setContractsError(null)
+
+    try {
+      console.log('📦 Начинаем загрузку контрактов из API...')
+      await contractRegistry.loadContracts({
+        limit: 100, // Загружаем первые 100 контрактов
+        trusted: true // Только доверенные контракты
+      })
+      console.log('✅ Контракты успешно загружены')
+    } catch (error: any) {
+      console.error('❌ Ошибка загрузки контрактов:', error)
+      setContractsError(error.message)
+      showError(`Не удалось загрузить контракты: ${error.message}`)
+    } finally {
+      setContractsLoading(false)
+    }
+  }
 
   // 1. Подключение кошелька через NetworkProvider
   const handleConnectWallet = async () => {
@@ -961,6 +993,8 @@ const SafeMultisigApp: React.FC = () => {
                         <ContractDropdown
                           onContractSelect={setSelectedContract}
                           selectedContract={selectedContract}
+                          isLoading={contractsLoading}
+                          error={contractsError}
                         />
 
                         {/* Dropdown для выбора функции */}
