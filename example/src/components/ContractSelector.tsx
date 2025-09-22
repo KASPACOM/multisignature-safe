@@ -1,5 +1,5 @@
 /**
- * Компонент для выбора контракта из предопределенного списка или ввода произвольного адреса
+ * Component for selecting contract from predefined list or entering custom address
  */
 
 import React, { useState, useEffect } from 'react'
@@ -25,21 +25,21 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
-    // Загружаем все контракты из реестра
+    // Load all contracts from registry
     const allContracts = contractRegistry.getAllContracts()
     setContracts(allContracts)
     
-    console.log('📋 Загружены контракты:', allContracts.length)
+    console.log('📋 Contracts loaded:', allContracts.length)
   }, [])
 
-  // Фильтрация контрактов по поисковому запросу
+  // Filter contracts by search query
   const filteredContracts = contracts.filter(contract =>
     contract.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     contract.address.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handlePredefinedSelect = (contract: ContractABI) => {
-    console.log('✅ Выбран предопределенный контракт:', contract.name)
+    console.log('✅ Predefined contract selected:', contract.name)
     onContractSelect(contract)
   }
 
@@ -47,14 +47,14 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
     setCustomAddress(address)
     
     if (address && /^0x[a-fA-F0-9]{40}$/.test(address)) {
-      // Проверяем, есть ли контракт в реестре
+      // Check if contract exists in registry
       const existingContract = contractRegistry.getContract(address)
       if (existingContract) {
-        console.log('✅ Найден существующий контракт:', existingContract.name)
+        console.log('✅ Existing contract found:', existingContract.name)
         onContractSelect(existingContract)
       } else {
-        console.log('⚠️ Контракт не найден в реестре, создаем временный')
-        // Создаем временный контракт для произвольного адреса
+        console.log('⚠️ Contract not found in registry, creating temporary')
+        // Create temporary contract for custom address
         const customContract: ContractABI = {
           name: `Custom Contract (${address.slice(0, 6)}...)`,
           address,
@@ -72,7 +72,7 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-4 mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">📄 Выбор контракта</h3>
+        <h3 className="text-lg font-semibold text-gray-900">📄 Contract Selection</h3>
         <div className="flex space-x-2">
           <button
             onClick={() => setMode('predefined')}
@@ -82,7 +82,7 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Предопределенные
+            Predefined
           </button>
           <button
             onClick={() => setMode('custom')}
@@ -92,25 +92,25 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Произвольный адрес
+            Custom Address
           </button>
         </div>
       </div>
 
       {mode === 'predefined' && (
         <div className="space-y-4">
-          {/* Поиск */}
+          {/* Search */}
           <div>
             <input
               type="text"
-              placeholder="Поиск по названию, категории или описанию..."
+              placeholder="Search by name, category or description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
 
-          {/* Список контрактов */}
+          {/* Contract list */}
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {filteredContracts.map((contract) => (
                       <div
@@ -143,7 +143,7 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
 
           {filteredContracts.length === 0 && searchQuery && (
             <div className="text-center py-8 text-gray-500">
-              <p>Контракты не найдены по запросу "{searchQuery}"</p>
+              <p>No contracts found for query "{searchQuery}"</p>
             </div>
           )}
         </div>
@@ -153,7 +153,7 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Адрес контракта
+              Contract Address
             </label>
             <input
               type="text"
@@ -164,7 +164,7 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
             />
             {customAddress && !/^0x[a-fA-F0-9]{40}$/.test(customAddress) && (
               <p className="text-sm text-red-600 mt-1">
-                Неверный формат адреса Ethereum
+                Invalid Ethereum address format
               </p>
             )}
           </div>
@@ -179,10 +179,10 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
                 </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-yellow-800">
-                    Произвольный контракт
+                    Custom Contract
                   </h3>
                   <p className="mt-1 text-sm text-yellow-700">
-                    ABI для этого контракта не загружен. Вы можете использовать только ручной ввод функций.
+                    ABI for this contract is not loaded. You can only use manual function input.
                   </p>
                 </div>
               </div>
@@ -191,7 +191,7 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
         </div>
       )}
 
-      {/* Информация о выбранном контракте */}
+      {/* Selected contract information */}
       {selectedContract && (
         <div className="mt-4 space-y-4">
           <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -203,21 +203,21 @@ export const ContractSelector: React.FC<ContractSelectorProps> = ({
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-green-800">
-                  Контракт выбран: {selectedContract.name}
+                  Contract selected: {selectedContract.name}
                 </h3>
                 <p className="mt-1 text-sm text-green-700">
-                  Адрес: {selectedContract.address}
+                  Address: {selectedContract.address}
                 </p>
                 {contractRegistry.hasContract(selectedContract.address) && (
                   <p className="mt-1 text-sm text-green-700">
-                    Доступно функций: {contractRegistry.getContractFunctions(selectedContract.address).length}
+                    Available functions: {contractRegistry.getContractFunctions(selectedContract.address).length}
                   </p>
                 )}
               </div>
             </div>
           </div>
 
-          {/* TypeChain информация о контракте */}
+          {/* TypeChain contract information */}
           {safeOnChain && (
             <ContractInfo 
               contractAddress={selectedContract.address}

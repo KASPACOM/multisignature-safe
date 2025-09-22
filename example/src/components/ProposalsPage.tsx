@@ -21,9 +21,9 @@ interface SafeInfo {
 
 interface UserProposalsStats {
   total: number
-  pending: number // требуют подписи пользователя
-  executable: number // готовы к выполнению
-  executed: number // уже выполнены
+  pending: number // require user signature
+  executable: number // ready to execute
+  executed: number // already executed
   byStatus: {
     needsMySignature: number
     waitingForOthers: number
@@ -57,92 +57,92 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
   loadPendingTransactions,
   onNavigateToSafeCreation
 }) => {
-  // Состояние статистики пропозалов пользователя
+  // User proposals statistics state
   const [userProposalsStats, setUserProposalsStats] = useState<UserProposalsStats | null>(null)
   const [statsLoading, setStatsLoading] = useState<boolean>(false)
   const [userProposalsRefresh, setUserProposalsRefresh] = useState(0)
   
-  // Состояние фильтров пропозалов
+  // Proposals filter state
   const [proposalsFilter, setProposalsFilter] = useState<'all' | 'needsSignature' | 'readyToExecute' | 'executed'>('all')
   
-  // Состояние Safe контрактов без пропозалов
+  // Safe contracts without proposals state
   const [safesWithoutProposals, setSafesWithoutProposals] = useState<string[]>([])
   const [safesLoading, setSafesLoading] = useState<boolean>(false)
 
-  // Загрузка статистики пропозалов пользователя
+  // Load user proposals statistics
   const loadUserProposalsStats = async (address: string) => {
-    console.log('📊 Загружаем статистику пропозалов для:', address)
+    console.log('📊 Loading proposals statistics for:', address)
     setStatsLoading(true)
 
     try {
       const stats = await safeOffChain.getUserProposalsStats(address)
       setUserProposalsStats(stats)
       
-      console.log('✅ Статистика пропозалов загружена:', stats)
+      console.log('✅ Proposals statistics loaded:', stats)
       
-      // Показываем краткую информацию пользователю если есть активные задачи
+      // Show brief info to user if there are active tasks
       if (stats.pending > 0 || stats.executable > 0) {
         let message = ''
         if (stats.pending > 0) {
-          message += `${stats.pending} пропозалов требуют вашей подписи`
+          message += `${stats.pending} proposals require your signature`
         }
         if (stats.executable > 0) {
           if (message) message += ', '
-          message += `${stats.executable} готовы к выполнению`
+          message += `${stats.executable} ready to execute`
         }
         showSuccess(`📋 ${message}`)
       }
     } catch (error) {
-      console.error('❌ Ошибка загрузки статистики пропозалов:', error)
-      // Не показываем ошибку пользователю, так как это не критично
+      console.error('❌ Error loading proposals statistics:', error)
+      // Don't show error to user as it's not critical
       setUserProposalsStats(null)
     } finally {
       setStatsLoading(false)
     }
   }
 
-  // Загрузка Safe контрактов без пропозалов
+  // Load Safe contracts without proposals
   const loadSafesWithoutProposals = async (address: string) => {
-    console.log('🏠 Загружаем Safe контракты без пропозалов для:', address)
+    console.log('🏠 Loading Safe contracts without proposals for:', address)
     setSafesLoading(true)
 
     try {
       const safes = await safeOffChain.getUserSafes(address)
       setSafesWithoutProposals(safes)
       
-      console.log('✅ Safe контракты без пропозалов загружены:', safes.length)
+      console.log('✅ Safe contracts without proposals loaded:', safes.length)
     } catch (error) {
-      console.error('❌ Ошибка загрузки Safe контрактов:', error)
+      console.error('❌ Error loading Safe contracts:', error)
       setSafesWithoutProposals([])
     } finally {
       setSafesLoading(false)
     }
   }
 
-  // Обработка действий с пропозалами пользователя
+  // Handle user proposal actions
   const handleUserProposalAction = async (proposal: UserProposal, action: ProposalAction) => {
-    console.log(`🎬 Действие с пропозалом пользователя: ${action}`, proposal.safeTxHash)
+    console.log(`🎬 User proposal action: ${action}`, proposal.safeTxHash)
 
     try {
       switch (action) {
         case ProposalAction.SIGN:
           if (!safeOnChain) {
-            showError('Safe Manager не инициализирован')
+            showError('Safe Manager not initialized')
             return
           }
           
-          console.log('🔌 Проверяем подключение к Safe для подписи:', proposal.safe)
+          console.log('🔌 Checking Safe connection for signing:', proposal.safe)
           
-          // Проверяем, подключены ли мы к нужному Safe адресу
+          // Check if we're connected to the required Safe address
           const currentSafeAddressSign = safeInfo?.address?.toLowerCase()
           const requiredSafeAddressSign = proposal.safe.toLowerCase()
           
           if (currentSafeAddressSign !== requiredSafeAddressSign) {
-            console.log(`🔄 Нужно подключиться к Safe ${requiredSafeAddressSign}, текущий: ${currentSafeAddressSign || 'не подключен'}`)
+            console.log(`🔄 Need to connect to Safe ${requiredSafeAddressSign}, current: ${currentSafeAddressSign || 'not connected'}`)
             
-            // Автоматически подключаемся к нужному Safe
+            // Automatically connect to the required Safe
             try {
-              // Получаем информацию о Safe для создания формы подключения
+              // Get Safe information to create connection form
               const safeInfoFromSTS = await safeOffChain.getSafeInfo(proposal.safe)
               const connectionForm: SafeConnectionForm = {
                 safeAddress: proposal.safe,
@@ -152,7 +152,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
               
               await safeOnChain.connectToSafeWithForm(connectionForm)
               
-              // Обновляем информацию о Safe
+              // Update Safe information
               const safeData = await safeOnChain.getCurrentSafeInfo()
               setSafeInfo({
                 address: safeData.address,
@@ -162,36 +162,36 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                 nonce: safeData.nonce
               })
               
-              console.log('✅ Подключились к Safe для подписи:', proposal.safe)
+              console.log('✅ Connected to Safe for signing:', proposal.safe)
             } catch (connectError) {
-              showError(`Не удалось подключиться к Safe ${formatAddress(proposal.safe)}: ${connectError instanceof Error ? connectError.message : 'Неизвестная ошибка'}`)
+              showError(`Failed to connect to Safe ${formatAddress(proposal.safe)}: ${connectError instanceof Error ? connectError.message : 'Unknown error'}`)
               return
             }
           } else {
-            console.log('✅ Уже подключены к нужному Safe для подписи')
+            console.log('✅ Already connected to the required Safe for signing')
           }
           
-          // Подписываем пропозал через EIP-712 подпись
-          console.log('📝 Подписываем пропозал через EIP-712:', proposal.safeTxHash)
+          // Sign proposal via EIP-712 signature
+          console.log('📝 Signing proposal via EIP-712:', proposal.safeTxHash)
           
           if (!network) {
-            showError('Network не подключен')
+            showError('Network not connected')
             return
           }
           
           try {
-            // 1. Получаем данные транзакции из STS
+            // 1. Get transaction data from STS
             const stsTransaction = await safeOffChain.getTransaction(proposal.safeTxHash)
             
-            // 2. Восстанавливаем SafeTransaction из данных STS
-            // Конвертируем value из STS (строка в wei) в BigInt
+            // 2. Restore SafeTransaction from STS data
+            // Convert value from STS (string in wei) to BigInt
             let valueFromSTS: bigint = 0n
             if (stsTransaction.value && stsTransaction.value !== '0') {
               try {
                 valueFromSTS = BigInt(stsTransaction.value)
-                console.log('💰 Конвертируем value из STS в BigInt для подписи:', stsTransaction.value, '→', valueFromSTS.toString())
+                console.log('💰 Converting value from STS to BigInt for signing:', stsTransaction.value, '→', valueFromSTS.toString())
               } catch (parseError) {
-                console.error('❌ Ошибка парсинга value из STS для подписи:', stsTransaction.value, parseError)
+                console.error('❌ Error parsing value from STS for signing:', stsTransaction.value, parseError)
                 valueFromSTS = 0n
               }
             }
@@ -202,18 +202,18 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
               data: stsTransaction.data || '0x'
             })
             
-            // Устанавливаем nonce из STS
+            // Set nonce from STS
             if (stsTransaction.nonce !== undefined) {
               safeTransaction.data.nonce = parseInt(stsTransaction.nonce.toString())
             }
             
-            console.log('📝 Подписываем восстановленную транзакцию через Safe SDK (EIP-712)...')
+            console.log('📝 Signing restored transaction via Safe SDK (EIP-712)...')
             
-            // 3. Подписываем транзакцию через Safe SDK (вызовет MetaMask)
+            // 3. Sign transaction via Safe SDK (will call MetaMask)
             const safeSdk = safeOnChain.getSafeSdk()
             const signedSafeTransaction = await safeSdk.signTransaction(safeTransaction)
             
-            // 4. Получаем адрес пользователя и его подпись
+            // 4. Get user address and their signature
             const userAddress = await network.signer.getAddress()
             const userSignature = signedSafeTransaction.signatures.get(userAddress) ||
               signedSafeTransaction.signatures.get(userAddress.toLowerCase()) ||
@@ -221,42 +221,42 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
             
             if (!userSignature) {
               const availableKeys = Array.from(signedSafeTransaction.signatures.keys())
-              throw new Error(`Подпись не найдена для адреса ${userAddress}. Доступные: ${availableKeys.join(', ')}`)
+              throw new Error(`Signature not found for address ${userAddress}. Available: ${availableKeys.join(', ')}`)
             }
             
-            console.log('✅ EIP-712 подпись создана:', userSignature.data.slice(0, 20) + '...')
+            console.log('✅ EIP-712 signature created:', userSignature.data.slice(0, 20) + '...')
             
-            // 5. Отправляем реальную подпись в STS
+            // 5. Send real signature to STS
             await safeOffChain.confirmTransaction(proposal.safeTxHash, userSignature.data)
-            showSuccess('✅ Пропозал подписан через EIP-712 и подтверждён в STS!')
+            showSuccess('✅ Proposal signed via EIP-712 and confirmed in STS!')
             
           } catch (signError: any) {
-            console.error('❌ Ошибка подписи EIP-712:', signError)
-            showError(`Ошибка подписи: ${signError.message}`)
+            console.error('❌ EIP-712 signature error:', signError)
+            showError(`Signature error: ${signError.message}`)
             return
           }
           
-          // Точечное обновление пропозала произойдет автоматически через UserProposals
+          // Point update of proposal will happen automatically via UserProposals
           break
 
         case ProposalAction.EXECUTE:
           if (!safeOnChain) {
-            showError('Safe Manager не инициализирован')
+            showError('Safe Manager not initialized')
             return
           }
           
-          console.log('🔌 Проверяем подключение к Safe:', proposal.safe)
+          console.log('🔌 Checking Safe connection:', proposal.safe)
           
-          // Проверяем, подключены ли мы к нужному Safe адресу
+          // Check if we're connected to the required Safe address
           const currentSafeAddress = safeInfo?.address?.toLowerCase()
           const requiredSafeAddress = proposal.safe.toLowerCase()
           
           if (currentSafeAddress !== requiredSafeAddress) {
-            console.log(`🔄 Нужно подключиться к Safe ${requiredSafeAddress}, текущий: ${currentSafeAddress || 'не подключен'}`)
+            console.log(`🔄 Need to connect to Safe ${requiredSafeAddress}, current: ${currentSafeAddress || 'not connected'}`)
             
-            // Автоматически подключаемся к нужному Safe
+            // Automatically connect to the required Safe
             try {
-              // Получаем информацию о Safe для создания формы подключения
+              // Get Safe information to create connection form
               const safeInfoFromSTS = await safeOffChain.getSafeInfo(proposal.safe)
               const connectionForm: SafeConnectionForm = {
                 safeAddress: proposal.safe,
@@ -266,7 +266,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
               
               await safeOnChain.connectToSafeWithForm(connectionForm)
               
-              // Обновляем информацию о Safe
+              // Update Safe information
               const safeData = await safeOnChain.getCurrentSafeInfo()
               setSafeInfo({
                 address: safeData.address,
@@ -276,23 +276,23 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                 nonce: safeData.nonce
               })
               
-              console.log('✅ Подключились к Safe:', proposal.safe)
+              console.log('✅ Connected to Safe:', proposal.safe)
             } catch (connectError) {
-              showError(`Не удалось подключиться к Safe ${formatAddress(proposal.safe)}: ${connectError instanceof Error ? connectError.message : 'Неизвестная ошибка'}`)
+              showError(`Failed to connect to Safe ${formatAddress(proposal.safe)}: ${connectError instanceof Error ? connectError.message : 'Unknown error'}`)
               return
             }
           } else {
-            console.log('✅ Уже подключены к нужному Safe')
+            console.log('✅ Already connected to the required Safe')
           }
           
-          // Выполняем транзакцию через STS интеграцию  
+          // Execute transaction via STS integration  
           const txHash = await safeOnChain.executeTransactionByHash(proposal.safeTxHash, safeOffChain)
-          showSuccess(`Пропозал выполнен! Hash: ${formatAddress(txHash)}`)
+          showSuccess(`Proposal executed! Hash: ${formatAddress(txHash)}`)
           
-          // Точечное обновление пропозала произойдет автоматически через UserProposals
+          // Point update of proposal will happen automatically via UserProposals
           
           if (safeInfo) {
-            // Обновляем информацию о Safe сразу
+            // Update Safe information immediately
             const updatedSafeInfo = await safeOnChain.getCurrentSafeInfo()
             setSafeInfo({
               address: updatedSafeInfo.address,
@@ -302,7 +302,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
               nonce: updatedSafeInfo.nonce
             })
             
-            // Обновляем список транзакций с задержкой
+            // Update transaction list with delay
             if (loadPendingTransactions) {
               setTimeout(async () => {
                 await loadPendingTransactions(safeInfo.address)
@@ -312,71 +312,71 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
           break
 
         case ProposalAction.VIEW:
-          // Показываем детальную информацию о пропозале
-          console.log('📋 Детали пропозала:', proposal)
-          showSuccess('Детали пропозала выведены в консоль')
+          // Show detailed proposal information
+          console.log('📋 Proposal details:', proposal)
+          showSuccess('Proposal details output to console')
           break
 
         default:
-          console.warn('Неизвестное действие:', action)
+          console.warn('Unknown action:', action)
       }
     } catch (error) {
-      console.error(`❌ Ошибка выполнения действия ${action}:`, error)
-      showError(error instanceof Error ? error.message : `Ошибка выполнения действия ${action}`)
+      console.error(`❌ Error executing action ${action}:`, error)
+      showError(error instanceof Error ? error.message : `Error executing action ${action}`)
     }
   }
 
-  // Обработка клика по Safe контракту
+  // Handle Safe contract click
   const handleSafeClick = async (safeAddress: string) => {
-    console.log('🏠 Клик по Safe контракту:', safeAddress)
+    console.log('🏠 Safe contract click:', safeAddress)
     
     try {
-      // Получаем информацию о Safe из STS
+      // Get Safe information from STS
       const safeInfoFromSTS = await safeOffChain.getSafeInfo(safeAddress)
       
-      console.log('📋 Информация о Safe:', {
+      console.log('📋 Safe information:', {
         address: safeAddress,
         owners: safeInfoFromSTS.owners,
         threshold: safeInfoFromSTS.threshold
       })
       
-      // Переходим на экран создания Safe с заполненными данными
+      // Navigate to Safe creation screen with filled data
       if (onNavigateToSafeCreation) {
         onNavigateToSafeCreation(safeAddress, safeInfoFromSTS.owners, safeInfoFromSTS.threshold)
       } else {
-        showError('Функция навигации к созданию Safe не настроена')
+        showError('Safe creation navigation function not configured')
       }
       
     } catch (error) {
-      console.error('❌ Ошибка получения информации о Safe:', error)
-      showError(`Не удалось получить информацию о Safe ${formatAddress(safeAddress)}`)
+      console.error('❌ Error getting Safe information:', error)
+      showError(`Failed to get Safe information ${formatAddress(safeAddress)}`)
     }
   }
 
-  // Обновление пропозалов пользователя
+  // Update user proposals
   const refreshUserProposals = () => {
     setUserProposalsRefresh(prev => prev + 1)
     
-    // Также обновляем статистику пропозалов и Safe контракты
+    // Also update proposals statistics and Safe contracts
     if (userAddress) {
       loadUserProposalsStats(userAddress)
       loadSafesWithoutProposals(userAddress)
     }
   }
 
-  // Точечное обновление одного пропозала (передается в UserProposals)
+  // Point update of a single proposal (passed to UserProposals)
   const handleSingleProposalUpdate = (safeTxHash: string) => {
-    console.log('🎯 Запрос точечного обновления пропозала:', safeTxHash)
-    // Логика обновления будет в самом UserProposals компоненте через updateSingleProposal
-    // Здесь мы можем дополнительно обновить статистику
+    console.log('🎯 Point proposal update request:', safeTxHash)
+    // Update logic will be in UserProposals component via updateSingleProposal
+    // Here we can additionally update statistics
     if (userAddress) {
       setTimeout(() => {
         loadUserProposalsStats(userAddress)
-      }, 2000) // Обновляем статистику с задержкой
+      }, 2000) // Update statistics with delay
     }
   }
 
-  // Загружаем статистику и Safe контракты при подключении пользователя
+  // Load statistics and Safe contracts when user connects
   useEffect(() => {
     if (userAddress) {
       loadUserProposalsStats(userAddress)
@@ -387,7 +387,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
     }
   }, [userAddress])
 
-  // Если кошелек не подключен
+  // If wallet is not connected
   if (!network || !userAddress) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -396,8 +396,8 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
             <div className="mb-4">
               <span className="text-6xl">🔗</span>
             </div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">Подключите кошелек</h3>
-            <p className="text-gray-500 mb-6">Для работы с пропозалами необходимо подключить кошелек</p>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Connect Wallet</h3>
+            <p className="text-gray-500 mb-6">To work with proposals, you need to connect a wallet</p>
           </div>
         </div>
       </div>
@@ -407,67 +407,67 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Заголовок */}
+        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            📋 Управление пропозалами
+            📋 Proposals Management
           </h1>
           <p className="text-gray-600">
-            Просматривайте, подписывайте и выполняйте свои пропозалы
+            View, sign and execute your proposals
           </p>
         </div>
 
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">📊 Статистика пропозалов</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">📊 Proposals Statistics</h2>
               <button
                 onClick={() => userAddress && loadUserProposalsStats(userAddress)}
                 disabled={statsLoading}
                 className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 text-sm"
               >
-                {statsLoading ? '⏳ Загрузка...' : '🔄 Обновить'}
+                {statsLoading ? '⏳ Loading...' : '🔄 Update'}
               </button>
             </div>
 
-            {/* Статистика пропозалов */}
+            {/* Proposals statistics */}
             {userProposalsStats && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-3">📊 Статистика</h3>
+                <h3 className="font-semibold text-blue-900 mb-3">📊 Statistics</h3>
                 {userProposalsStats.total > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                     <div className="text-center">
                       <div className="font-bold text-2xl text-gray-800">{userProposalsStats.total}</div>
-                      <div className="text-gray-600">Всего пропозалов</div>
+                      <div className="text-gray-600">Total Proposals</div>
                     </div>
                     <div className="text-center">
                       <div className={`font-bold text-2xl ${userProposalsStats.byStatus.needsMySignature > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
                         {userProposalsStats.byStatus.needsMySignature}
                       </div>
-                      <div className="text-gray-600">Требуют вашей подписи</div>
+                      <div className="text-gray-600">Require Your Signature</div>
                     </div>
                     <div className="text-center">
                       <div className={`font-bold text-2xl ${userProposalsStats.byStatus.readyToExecute > 0 ? 'text-green-600' : 'text-gray-400'}`}>
                         {userProposalsStats.byStatus.readyToExecute}
                       </div>
-                      <div className="text-gray-600">Готовы к выполнению</div>
+                      <div className="text-gray-600">Ready to Execute</div>
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-2xl text-gray-500">{userProposalsStats.byStatus.executed}</div>
-                      <div className="text-gray-600">Выполнены</div>
+                      <div className="text-gray-600">Executed</div>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center py-4">
-                    <div className="text-gray-500">✨ У вас пока нет пропозалов</div>
+                    <div className="text-gray-500">✨ You don't have any proposals yet</div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Фильтры пропозалов */}
+            {/* Proposals filters */}
             <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">🔍 Фильтровать пропозалы:</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">🔍 Filter proposals:</h3>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setProposalsFilter('all')}
@@ -477,7 +477,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  📋 Все ({userProposalsStats?.total || 0})
+                  📋 All ({userProposalsStats?.total || 0})
                 </button>
                 <button
                   onClick={() => setProposalsFilter('needsSignature')}
@@ -487,7 +487,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  ✍️ Требуют подписи ({userProposalsStats?.byStatus.needsMySignature || 0})
+                  ✍️ Require Signature ({userProposalsStats?.byStatus.needsMySignature || 0})
                 </button>
                 <button
                   onClick={() => setProposalsFilter('readyToExecute')}
@@ -497,7 +497,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  🚀 Готовы к выполнению ({userProposalsStats?.byStatus.readyToExecute || 0})
+                  🚀 Ready to Execute ({userProposalsStats?.byStatus.readyToExecute || 0})
                 </button>
                 <button
                   onClick={() => setProposalsFilter('executed')}
@@ -507,33 +507,33 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  ✅ Выполнены ({userProposalsStats?.byStatus.executed || 0})
+                  ✅ Executed ({userProposalsStats?.byStatus.executed || 0})
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Секция Safe контрактов без пропозалов */}
+          {/* Safe contracts without proposals section */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">🏠 Мои Safe контракты</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">🏠 My Safe Contracts</h2>
               <button
                 onClick={() => userAddress && loadSafesWithoutProposals(userAddress)}
                 disabled={safesLoading}
                 className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50 text-sm"
               >
-                {safesLoading ? '⏳ Загрузка...' : '🔄 Обновить'}
+                {safesLoading ? '⏳ Loading...' : '🔄 Update'}
               </button>
             </div>
 
             {safesLoading ? (
               <div className="text-center py-8">
-                <div className="text-gray-500">⏳ Загружаем ваши Safe контракты...</div>
+                <div className="text-gray-500">⏳ Loading your Safe contracts...</div>
               </div>
             ) : safesWithoutProposals.length > 0 ? (
               <div className="space-y-3">
                 <p className="text-sm text-gray-600 mb-4">
-                  💡 Нажмите на адрес Safe контракта, чтобы создать пропозал для него
+                  💡 Click on the Safe contract address to create a proposal for it
                 </p>
                 {safesWithoutProposals.map((safeAddress) => (
                   <div
@@ -547,11 +547,11 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                           {safeAddress}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          🏠 Safe контракт
+                          🏠 Safe Contract
                         </div>
                       </div>
                       <div className="text-blue-600 text-sm">
-                        ➡️ Создать пропозал
+                        ➡️ Create Proposal
                       </div>
                     </div>
                   </div>
@@ -560,16 +560,16 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
             ) : (
               <div className="text-center py-8">
                 <div className="text-gray-500">
-                  ✨ У вас пока нет Safe контрактов без активных пропозалов
+                  ✨ You don't have any Safe contracts without active proposals yet
                 </div>
                 <div className="text-sm text-gray-400 mt-2">
-                  Создайте Safe контракт или дождитесь выполнения всех пропозалов
+                  Create a Safe contract or wait for all proposals to be executed
                 </div>
               </div>
             )}
           </div>
 
-          {/* Список пропозалов */}
+          {/* Proposals list */}
           <div>
             <UserProposals
               userAddress={userAddress}

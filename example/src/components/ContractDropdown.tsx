@@ -1,5 +1,5 @@
 /**
- * Dropdown для выбора контракта из доступных ABI
+ * Dropdown for selecting contract from available ABIs
  */
 
 import React, { useState, useEffect } from 'react'
@@ -17,7 +17,7 @@ interface ContractDropdownProps {
 export const ContractDropdown: React.FC<ContractDropdownProps> = ({
   onContractSelect,
   selectedContract,
-  placeholder = "Выберите контракт...",
+  placeholder = "Select contract...",
   isLoading = false,
   error = null
 }) => {
@@ -25,17 +25,17 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
-    // Загружаем все доступные контракты
+    // Load all available contracts
     const loadContracts = () => {
       const allContracts = contractRegistry.getAllContracts()
       setContracts(allContracts)
-      console.log('📋 Загружены контракты для dropdown:', allContracts.length)
+      console.log('📋 Contracts loaded for dropdown:', allContracts.length)
     }
 
-    // Загружаем сразу
+    // Load immediately
     loadContracts()
 
-    // Обновляем контракты каждые 2 секунды, если они еще загружаются
+    // Update contracts every 2 seconds if they are still loading
     const interval = setInterval(() => {
       const status = contractRegistry.getLoadingStatus()
       if (!status.isLoading && status.hasContracts) {
@@ -50,7 +50,7 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
   const handleContractSelect = (contract: ContractABI) => {
     onContractSelect(contract)
     setIsOpen(false)
-    console.log('✅ Выбран контракт:', contract.name)
+    console.log('✅ Contract selected:', contract.name)
   }
 
   const clearSelection = () => {
@@ -61,7 +61,7 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
   return (
     <div className="relative">
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        📄 Выберите контракт
+        📄 Select Contract
       </label>
       
       <div className="relative">
@@ -75,9 +75,9 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
         >
           <span className="block truncate">
             {isLoading ? (
-              <span className="text-gray-500">🔄 Загружаем контракты...</span>
+              <span className="text-gray-500">🔄 Loading contracts...</span>
             ) : error ? (
-              <span className="text-red-500">❌ Ошибка загрузки</span>
+              <span className="text-red-500">❌ Loading error</span>
             ) : selectedContract ? (
               <span className="font-medium">{selectedContract.name}</span>
             ) : (
@@ -98,13 +98,13 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
                 onClick={clearSelection}
                 className="cursor-pointer select-none relative py-2 pl-3 pr-9 text-gray-500 hover:bg-gray-50 border-b border-gray-100"
               >
-                <span className="block truncate text-sm">Очистить выбор</span>
+                <span className="block truncate text-sm">Clear selection</span>
               </div>
             )}
             
             {contracts.length === 0 ? (
               <div className="cursor-default select-none relative py-2 pl-3 pr-9 text-gray-500">
-                <span className="block truncate text-sm">Нет доступных контрактов</span>
+                <span className="block truncate text-sm">No available contracts</span>
               </div>
             ) : (
               contracts.map((contract) => (
@@ -140,7 +140,7 @@ export const ContractDropdown: React.FC<ContractDropdownProps> = ({
 
       {selectedContract && (
         <div className="mt-2 text-xs text-gray-600">
-          <span>Функций доступно: </span>
+          <span>Available functions: </span>
           <span className="font-medium">
             {contractRegistry.getContractFunctions(selectedContract.address).length}
           </span>
