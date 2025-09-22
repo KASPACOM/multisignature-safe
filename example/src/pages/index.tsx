@@ -170,6 +170,20 @@ const SafeMultisigApp: React.FC = () => {
               owners: currentOwners,
               threshold: currentThreshold
             })
+            
+            // Update Safe info with highest nonce after reconnection
+            const updatedSafeData = await newSafeOnChain.getCurrentSafeInfo()
+            const finalNonce = await getHighestNonce(newSafeOnChain) // Use the unified function
+            console.log('📊 Auto-reconnect using unified nonce function')
+            
+            setSafeInfo({
+              address: updatedSafeData.address,
+              owners: updatedSafeData.owners,
+              threshold: updatedSafeData.threshold,
+              balance: updatedSafeData.balance,
+              nonce: finalNonce
+            })
+            
             console.log('✅ Safe automatically reconnected')
           } catch (error) {
             console.error('❌ Safe automatic reconnection error:', error)
@@ -223,6 +237,48 @@ const SafeMultisigApp: React.FC = () => {
       }
     }
   }, [currentSection, safeInfo])
+
+  // Get highest nonce between onchain and offchain sources
+  const getHighestNonce = async (safeOnChainInstance?: SafeOnChain): Promise<number> => {
+    const safeInstance = safeOnChainInstance || safeOnChain
+    
+    if (!safeInstance || !safeInstance.currentSafeAddress) {
+      throw new Error('SafeOnChain not connected')
+    }
+
+    // Get onchain nonce
+    const onchainSafeData = await safeInstance.getCurrentSafeInfo()
+    console.log('📊 Onchain nonce:', onchainSafeData.nonce)
+
+    let highestNonce = onchainSafeData.nonce
+
+    // Try to get offchain current nonce from STS
+    if (safeOffChain?.isSTSAvailable()) {
+      try {
+        const stsNextNonce = await safeOffChain.getNextNonce(safeInstance.currentSafeAddress)
+        // Use the highest nonce
+        highestNonce = Math.max(onchainSafeData.nonce, stsNextNonce)
+        console.log(`📊 Highest nonce: ${highestNonce} (onchain: ${onchainSafeData.nonce}, offchain current: ${stsNextNonce})`)
+      } catch (error) {
+        console.warn('⚠️ Could not get nonce from STS, using onchain nonce:', error)
+      }
+    } else {
+      console.log('📊 STS not available, using onchain nonce only:', highestNonce)
+    }
+
+    return highestNonce
+  }
+
+  // Get Safe info with highest nonce for UI display
+  const getSafeInfoWithHighestNonce = async () => {
+    const onchainSafeData = await safeOnChain!.getCurrentSafeInfo()
+    const highestNonce = await getHighestNonce()
+    
+    return {
+      ...onchainSafeData,
+      nonce: highestNonce
+    }
+  }
 
   // Application initialization
   const initializeApp = async () => {
@@ -326,8 +382,8 @@ const SafeMultisigApp: React.FC = () => {
 
       await safeOnChain.connectToSafeWithForm(formData)
 
-      // Get Safe information
-      const safeData = await safeOnChain.getCurrentSafeInfo()
+      // Get Safe information with highest nonce
+      const safeData = await getSafeInfoWithHighestNonce()
       setSafeInfo({
         address: safeData.address,
         owners: safeData.owners,
@@ -367,8 +423,8 @@ const SafeMultisigApp: React.FC = () => {
         throw new Error('Failed to get created Safe address')
       }
 
-      // Get Safe information
-      const safeData = await safeOnChain.getCurrentSafeInfo()
+      // Get Safe information with highest nonce
+      const safeData = await getSafeInfoWithHighestNonce()
       setSafeInfo({
         address: safeData.address,
         owners: safeData.owners,
@@ -428,10 +484,14 @@ const SafeMultisigApp: React.FC = () => {
     try {
       console.log('🚀 Creating structured transaction...')
       
+      const nextNonce = await getHighestNonce()
+      console.log('📍 Using next nonce for transaction:', nextNonce)
+      
       const result = await safeOnChain.createStructuredTransactionHash(
         selectedContract.address,
         selectedFunction,
-        structuredFormData
+        structuredFormData,
+        nextNonce
       )
 
       setUniversalResult(result)
@@ -525,12 +585,14 @@ const SafeMultisigApp: React.FC = () => {
 
       console.log('🎯 Creating universal transaction hash for:', functionCall)
 
+      const nextNonce = await getHighestNonce()
+      console.log('📍 Using next nonce for transaction:', nextNonce)
+
       // Create transaction hash through SafeOnChain 
       const result = await safeOnChain.createUniversalTransactionHash(
-        functionCall
+        functionCall,
+        nextNonce
       )
-
-      // REMOVE STS sending at hash creation stage - it will be after signing
 
       setUniversalResult({
         transactionHash: result.transactionHash,

@@ -282,7 +282,8 @@ export class SafeOnChain {
   async createStructuredTransactionHash(
     contractAddress: string,
     selectedFunction: ParsedFunction,
-    formData: FunctionFormData
+    formData: FunctionFormData,
+    nonce?: number
   ): Promise<UniversalOperationResult> {
     if (!this.currentSafeAddress) {
       throw new Error('Safe address not defined')
@@ -302,7 +303,7 @@ export class SafeOnChain {
       value: valueInWei
     }
 
-    return await this.createUniversalTransactionHash(functionCall)
+    return await this.createUniversalTransactionHash(functionCall, nonce)
   }
 
   private convertFormDataToParams(
@@ -358,7 +359,8 @@ export class SafeOnChain {
   }
 
   async createUniversalTransactionHash(
-    functionCall: UniversalFunctionCall
+    functionCall: UniversalFunctionCall,
+    nonce?: number
   ): Promise<UniversalOperationResult> {
     if (!this.currentSafeAddress) {
       throw new Error('Safe address not defined')
@@ -367,7 +369,8 @@ export class SafeOnChain {
     console.log('🏗️ Creating transaction:', {
       contract: functionCall.contractAddress,
       function: functionCall.functionSignature,
-      value: ethers.formatEther(functionCall.value || 0n) + ' ETH'
+      value: ethers.formatEther(functionCall.value || 0n) + ' ETH',
+      nonce: nonce !== undefined ? nonce : 'auto'
     })
 
     const encodedData = this.encodeFunctionCall(functionCall)
@@ -378,7 +381,7 @@ export class SafeOnChain {
       data: encodedData
     }
 
-    const safeTransaction = await this.createSafeTransaction(transactionParams)
+    const safeTransaction = await this.createSafeTransaction(transactionParams, nonce)
     const transactionHash = await this.getSafeSdk().getTransactionHash(safeTransaction)
 
     console.log('✅ Transaction hash created:', transactionHash)
@@ -397,12 +400,17 @@ export class SafeOnChain {
   }
 
   async createSafeTransaction(
-    transactionParams: TransactionParams
+    transactionParams: TransactionParams,
+    nonce?: number
   ): Promise<SafeTransaction> {
     const safeSdk = this.getSafeSdk()
     const valueInWei = transactionParams.value.toString()
 
     console.log('Transaction params:', transactionParams)
+    
+    if (nonce !== undefined) {
+      console.log('📍 Using specified nonce:', nonce)
+    }
 
     const metaTransactionData: MetaTransactionData = {
       to: transactionParams.to,
@@ -413,10 +421,12 @@ export class SafeOnChain {
     const safeTransaction = await safeSdk.createTransaction({
       transactions: [metaTransactionData],
       options: {
-        safeTxGas: '0'
+        safeTxGas: '0',
+        nonce: nonce
       }
     })
 
+    console.log('✅ Safe transaction created with nonce:', safeTransaction.data.nonce)
     return safeTransaction
   }
 
@@ -439,16 +449,17 @@ export class SafeOnChain {
     console.log('💰 Value from STS:', txFromSTS.value, 'wei')
     console.log('💰 Value as BigInt:', valueFromSTS.toString(), 'wei')
 
+    // Use nonce from STS transaction
+    const nonceFromSTS = txFromSTS.nonce ? parseInt(txFromSTS.nonce.toString()) : undefined
+    console.log('📍 Using nonce from STS:', nonceFromSTS)
+
     const safeTransaction = await this.createSafeTransaction({
       to: txFromSTS.to,
       value: valueFromSTS,
       data: txFromSTS.data || '0x'
-    })
+    }, nonceFromSTS)
 
-    // Restore parameters from STS
-    if (txFromSTS.nonce !== undefined) {
-      safeTransaction.data.nonce = parseInt(txFromSTS.nonce.toString())
-    }
+    // Restore parameters from STS (nonce already set during transaction creation)
     
     if (txFromSTS.safeTxGas) {
       safeTransaction.data.safeTxGas = txFromSTS.safeTxGas

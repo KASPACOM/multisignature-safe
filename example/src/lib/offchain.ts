@@ -95,6 +95,16 @@ export class SafeOffChain {
     }
   }
 
+  // Get next nonce for new transaction from STS
+  async getNextNonce(safeAddress: string): Promise<number> {
+    if (!this.apiKit) {
+      throw new Error('STS unavailable')
+    }
+
+    const nextNonce = await this.apiKit.getNextNonce(safeAddress)
+    return parseInt(nextNonce)
+  }
+
   // Get transaction from STS
   async getTransaction(safeTxHash: string) {
     if (!this.apiKit) {

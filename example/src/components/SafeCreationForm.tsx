@@ -274,56 +274,6 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
           </div>
         </div>
 
-        {/* Additional parameters */}
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Additional Parameters
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Safe version */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Safe Version
-              </label>
-              <select
-                value={formData.safeVersion}
-                onChange={(e) => updateField('safeVersion', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value={DEFAULT_SAFE_VERSION}>{DEFAULT_SAFE_VERSION} (recommended)</option>
-                <option value="1.3.0">1.3.0</option>
-                <option value="1.2.0">1.2.0</option>
-                <option value="1.1.1">1.1.1</option>
-              </select>
-              <p className="mt-1 text-sm text-gray-500">
-                Use the latest version for better security
-              </p>
-            </div>
-
-            {/* Fallback Handler */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fallback Handler
-              </label>
-              <input
-                type="text"
-                value={formData.fallbackHandler || ''}
-                onChange={(e) => updateField('fallbackHandler', e.target.value)}
-                placeholder="0x... (optional)"
-                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.fallbackHandler ? 'border-red-300' : 'border-gray-300'
-                }`}
-              />
-              {errors.fallbackHandler && (
-                <p className="mt-1 text-sm text-red-600">{errors.fallbackHandler}</p>
-              )}
-              <p className="mt-1 text-sm text-gray-500">
-                Leave empty to use default handler
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Predicted address */}
         {predictedAddress && (
