@@ -19,7 +19,7 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       timeout: 5s
       retries: 3
 
@@ -58,6 +58,8 @@ services:
     working_dir: /app
     ports:
       - "8888:8888"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - nginx-shared:/nginx
     command: docker/web/run_web.sh
@@ -70,6 +72,8 @@ services:
     environment:
       RUN_MIGRATIONS: 1
       WORKER_QUEUES: "default,indexing,processing"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - db
       - redis
