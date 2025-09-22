@@ -12,8 +12,8 @@ interface UserProposalsProps {
   userAddress: string
   className?: string
   onProposalAction?: (proposal: UserProposal, action: ProposalAction) => void
-  refreshTrigger?: number // Для принудительного обновления извне
-  onSingleProposalUpdate?: (safeTxHash: string) => void // Функция для точечного обновления пропозала
+  refreshTrigger?: number // For forced refresh from outside
+  onSingleProposalUpdate?: (safeTxHash: string) => void // Function for targeted proposal update
 }
 
 interface ProposalStats {
@@ -45,10 +45,10 @@ const UserProposals: React.FC<UserProposalsProps> = ({
   const [error, setError] = useState<string>('')
   const [filter, setFilter] = useState<ProposalFilter>('all')
   const [expandedProposal, setExpandedProposal] = useState<string | null>(null)
-  const [actionLoading, setActionLoading] = useState<{[txHash: string]: 'signing' | 'executing'}>({}) // Для отслеживания действий с конкретными пропозалами
-  const [updatingProposals, setUpdatingProposals] = useState<Set<string>>(new Set()) // Для отслеживания пропозалов в процессе обновления
+  const [actionLoading, setActionLoading] = useState<{[txHash: string]: 'signing' | 'executing'}>({}) // For tracking actions on specific proposals
+  const [updatingProposals, setUpdatingProposals] = useState<Set<string>>(new Set()) // For tracking proposals being updated
 
-  // Загрузка пропозалов пользователя
+  // Load user proposals
   const loadUserProposals = async () => {
     if (!userAddress) return
 
@@ -56,13 +56,13 @@ const UserProposals: React.FC<UserProposalsProps> = ({
     setError('')
 
     try {
-      console.log('📥 Загружаем пропозалы пользователя:', userAddress)
+      console.log('📥 Loading user proposals:', userAddress)
       
-      // Получаем статистику пропозалов
+      // Get proposals statistics
       const statsData = await safeOffChain.getUserProposalsStats(userAddress)
       setStats(statsData)
       
-      // Получаем все пропозалы пользователя
+      // Get all user proposals
       const userProposalsFilter: UserProposalsFilter = {
         userAddress,
         sortBy: 'submissionDate',
@@ -73,36 +73,36 @@ const UserProposals: React.FC<UserProposalsProps> = ({
       const userProposals = await safeOffChain.getUserProposals(userProposalsFilter)
       setProposals(userProposals)
       
-      console.log('✅ Пропозалы загружены:', {
+      console.log('✅ Proposals loaded:', {
         stats: statsData,
         proposals: userProposals.length
       })
 
     } catch (err) {
-      console.error('❌ Ошибка загрузки пропозалов:', err)
-      setError(err instanceof Error ? err.message : 'Неизвестная ошибка')
+      console.error('❌ Proposals loading error:', err)
+      setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
   }
 
-  // Обновление только одного пропозала
+  // Update only one proposal
   const updateSingleProposal = async (safeTxHash: string, maxRetries = 3, delay = 1500) => {
-    console.log('🔄 Обновляем отдельный пропозал:', safeTxHash)
+    console.log('🔄 Updating single proposal:', safeTxHash)
     
-    // Добавляем пропозал в список обновляемых
+    // Add proposal to updating list
     setUpdatingProposals(prev => new Set([...prev, safeTxHash]))
     
     let attempts = 0
     
     const tryUpdate = async () => {
       attempts++
-      console.log(`🔄 Попытка обновления пропозала ${safeTxHash}: ${attempts}/${maxRetries}`)
+      console.log(`🔄 Proposal update attempt ${safeTxHash}: ${attempts}/${maxRetries}`)
       
       try {
-        // Получаем обновленные данные о конкретном пропозале
+        // Get updated data for specific proposal
         const updatedTransaction = await safeOffChain.getTransaction(safeTxHash)
-        console.log('📥 Получены обновленные данные пропозала:', {
+        console.log('📥 Received updated proposal data:', {
           safeTxHash,
           isExecuted: updatedTransaction.isExecuted,
           isSuccessful: updatedTransaction.isSuccessful,
@@ -110,7 +110,7 @@ const UserProposals: React.FC<UserProposalsProps> = ({
           confirmations: updatedTransaction.confirmations?.length || 0
         })
         
-        // Обновляем только этот пропозал в списке
+        // Update only this proposal in the list
         setProposals(prevProposals => 
           prevProposals.map(proposal => {
             if (proposal.safeTxHash === safeTxHash) {
@@ -128,57 +128,57 @@ const UserProposals: React.FC<UserProposalsProps> = ({
           })
         )
         
-        console.log('✅ Пропозал обновлен:', safeTxHash)
+        console.log('✅ Proposal updated:', safeTxHash)
         
-        // Также обновляем статистику (более легковесно чем весь список)
+        // Also update statistics (lighter than entire list)
         if (userAddress) {
           try {
             const updatedStats = await safeOffChain.getUserProposalsStats(userAddress)
             setStats(updatedStats)
           } catch (statsError) {
-            console.warn('⚠️ Не удалось обновить статистику:', statsError)
+            console.warn('⚠️ Failed to update statistics:', statsError)
           }
         }
         
-        // Убираем пропозал из списка обновляемых
+        // Remove proposal from updating list
         setUpdatingProposals(prev => {
           const newSet = new Set(prev)
           newSet.delete(safeTxHash)
           return newSet
         })
         
-        return true // Успешно обновлено
+        return true // Successfully updated
         
       } catch (error: any) {
-        console.warn(`⚠️ Не удалось обновить пропозал ${safeTxHash} (попытка ${attempts}):`, error)
+        console.warn(`⚠️ Failed to update proposal ${safeTxHash} (attempt ${attempts}):`, error)
         
-        // Если не последняя попытка, планируем следующую
+        // If not last attempt, schedule next one
         if (attempts < maxRetries) {
           setTimeout(tryUpdate, delay)
           return false
         } else {
-          // Убираем из списка обновляемых после всех неудачных попыток
+          // Remove from updating list after all failed attempts
           setUpdatingProposals(prev => {
             const newSet = new Set(prev)
             newSet.delete(safeTxHash)
             return newSet
           })
-          console.error(`❌ Не удалось обновить пропозал ${safeTxHash} после ${maxRetries} попыток`)
+          console.error(`❌ Failed to update proposal ${safeTxHash} after ${maxRetries} attempts`)
           return false
         }
       }
     }
     
-    // Первая попытка сразу
+    // First attempt immediately
     await tryUpdate()
   }
 
-  // Эффект для начальной загрузки и обновления при изменении пользователя
+  // Effect for initial loading and updating on user change
   useEffect(() => {
     loadUserProposals()
   }, [userAddress, refreshTrigger])
 
-  // Фильтрация пропозалов по статусу
+  // Filter proposals by status
   const getFilteredProposals = (): UserProposal[] => {
     if (!stats) return proposals
 
@@ -217,13 +217,13 @@ const UserProposals: React.FC<UserProposalsProps> = ({
     }
   }
 
-  // Получение иконки статуса пропозала
+  // Get proposal status icon
   const getProposalStatusIcon = (proposal: UserProposal): { icon: string, color: string, text: string } => {
     if (proposal.isExecuted) {
       return { 
         icon: '✅', 
         color: 'text-green-600', 
-        text: 'Выполнено' 
+        text: 'Executed' 
       }
     }
 
@@ -236,7 +236,7 @@ const UserProposals: React.FC<UserProposalsProps> = ({
       return { 
         icon: '✍️', 
         color: 'text-orange-600', 
-        text: 'Требует вашей подписи' 
+        text: 'Requires your signature' 
       }
     }
 
@@ -244,22 +244,22 @@ const UserProposals: React.FC<UserProposalsProps> = ({
       return { 
         icon: '🚀', 
         color: 'text-blue-600', 
-        text: 'Готово к выполнению' 
+        text: 'Ready to execute' 
       }
     }
 
     return { 
       icon: '⏳', 
       color: 'text-yellow-600', 
-      text: 'Ожидает других подписей' 
+        text: 'Waiting for other signatures'
     }
   }
 
-  // Обработка действий с пропозалами
+  // Handle proposal actions
   const handleProposalAction = async (proposal: UserProposal, action: ProposalAction) => {
-    console.log(`🎬 Действие с пропозалом: ${action}`, proposal.safeTxHash)
+    console.log(`🎬 Proposal action: ${action}`, proposal.safeTxHash)
     
-    // Устанавливаем состояние загрузки для данного пропозала
+    // Set loading state for this proposal
     if (action === ProposalAction.SIGN) {
       setActionLoading(prev => ({ ...prev, [proposal.safeTxHash]: 'signing' }))
     } else if (action === ProposalAction.EXECUTE) {
@@ -267,39 +267,39 @@ const UserProposals: React.FC<UserProposalsProps> = ({
     }
     
     try {
-      // Вызываем родительский обработчик
+      // Call parent handler
       await onProposalAction?.(proposal, action)
       
-      // После успешного действия запускаем точечное обновление пропозала
+      // After successful action, run targeted proposal update
       if (action === ProposalAction.SIGN || action === ProposalAction.EXECUTE) {
-        // Всегда обновляем конкретный пропозал
+        // Always update specific proposal
         setTimeout(() => {
           updateSingleProposal(proposal.safeTxHash, 
-            action === ProposalAction.EXECUTE ? 5 : 3, // Больше попыток для execute
-            action === ProposalAction.EXECUTE ? 3000 : 1500 // Больше интервал для execute
+            action === ProposalAction.EXECUTE ? 5 : 3, // More attempts for execute
+            action === ProposalAction.EXECUTE ? 3000 : 1500 // Larger interval for execute
           )
         }, action === ProposalAction.EXECUTE ? 2000 : 500)
         
-        // Дополнительно вызываем обновление статистики (если предоставлено)
+        // Additionally call statistics update (if provided)
         if (onSingleProposalUpdate) {
           setTimeout(() => {
             onSingleProposalUpdate(proposal.safeTxHash)
-          }, action === ProposalAction.EXECUTE ? 1500 : 1000) // С небольшой задержкой после обновления пропозала
+          }, action === ProposalAction.EXECUTE ? 1500 : 1000) // With slight delay after proposal update
         }
       }
     } finally {
-      // Очищаем состояние загрузки через небольшую задержку
+      // Clear loading state after small delay
       setTimeout(() => {
         setActionLoading(prev => {
           const newState = { ...prev }
           delete newState[proposal.safeTxHash]
           return newState
         })
-      }, action === ProposalAction.EXECUTE ? 8000 : 4000) // Больше времени для execute
+      }, action === ProposalAction.EXECUTE ? 8000 : 4000) // More time for execute
     }
   }
 
-  // Переключение развернутого отображения пропозала
+  // Toggle expanded proposal display
   const toggleExpandedProposal = (safeTxHash: string) => {
     setExpandedProposal(expandedProposal === safeTxHash ? null : safeTxHash)
   }
@@ -308,15 +308,15 @@ const UserProposals: React.FC<UserProposalsProps> = ({
 
   return (
     <div className={`bg-white rounded-lg shadow ${className}`}>
-      {/* Заголовок */}
+      {/* Header */}
       <div className="border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
-              📋 Мои пропозалы
+              📋 My Proposals
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              Транзакции, назначенные на {formatAddress(userAddress)}
+              Transactions assigned to {formatAddress(userAddress)}
             </p>
           </div>
           
@@ -326,54 +326,54 @@ const UserProposals: React.FC<UserProposalsProps> = ({
               disabled={loading}
               className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 transition-colors text-sm"
             >
-              {loading ? '🔄' : '🔄'} Обновить
+              {loading ? '🔄' : '🔄'} Refresh
             </button>
             
             {!safeOffChain.isSTSAvailable() && (
               <div className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">
-                Локальный режим
+                Local Mode
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Статистика */}
+      {/* Statistics */}
       {stats && (
         <div className="px-6 py-4 bg-gray-50">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              <div className="text-sm text-gray-600">Всего</div>
+              <div className="text-sm text-gray-600">Total</div>
             </div>
             
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">{stats.byStatus.needsMySignature}</div>
-              <div className="text-sm text-gray-600">Требуют подписи</div>
+              <div className="text-sm text-gray-600">Require Signature</div>
             </div>
             
             <div className="text-2xl font-bold text-blue-600 text-center">
               <div>{stats.byStatus.readyToExecute}</div>
-              <div className="text-sm text-gray-600">Готовы к выполнению</div>
+              <div className="text-sm text-gray-600">Ready to Execute</div>
             </div>
             
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">{stats.byStatus.executed}</div>
-              <div className="text-sm text-gray-600">Выполнено</div>
+              <div className="text-sm text-gray-600">Executed</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Фильтры */}
+      {/* Filters */}
       <div className="px-6 py-3 border-b border-gray-100">
         <div className="flex flex-wrap gap-2">
           {[
-            { key: 'all', label: '📋 Все', count: stats?.total || 0 },
-            { key: 'needsMySignature', label: '✍️ Требуют подписи', count: stats?.byStatus.needsMySignature || 0 },
-            { key: 'waitingForOthers', label: '⏳ Ожидают других', count: stats?.byStatus.waitingForOthers || 0 },
-            { key: 'readyToExecute', label: '🚀 Готовы к выполнению', count: stats?.byStatus.readyToExecute || 0 },
-            { key: 'executed', label: '✅ Выполненные', count: stats?.byStatus.executed || 0 },
+            { key: 'all', label: '📋 All', count: stats?.total || 0 },
+            { key: 'needsMySignature', label: '✍️ Require Signature', count: stats?.byStatus.needsMySignature || 0 },
+            { key: 'waitingForOthers', label: '⏳ Waiting for Others', count: stats?.byStatus.waitingForOthers || 0 },
+            { key: 'readyToExecute', label: '🚀 Ready to Execute', count: stats?.byStatus.readyToExecute || 0 },
+            { key: 'executed', label: '✅ Executed', count: stats?.byStatus.executed || 0 },
           ].map((filterOption) => (
             <button
               key={filterOption.key}
@@ -395,7 +395,7 @@ const UserProposals: React.FC<UserProposalsProps> = ({
         </div>
       </div>
 
-      {/* Сообщения об ошибках */}
+      {/* Error messages */}
       {error && (
         <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
           <div className="flex items-center gap-2">
@@ -405,17 +405,17 @@ const UserProposals: React.FC<UserProposalsProps> = ({
         </div>
       )}
 
-      {/* Состояние загрузки */}
+      {/* Loading state */}
       {loading && (
         <div className="flex items-center justify-center py-8">
           <div className="flex items-center gap-3 text-gray-600">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span>Загрузка пропозалов...</span>
+            <span>Loading proposals...</span>
           </div>
         </div>
       )}
 
-      {/* Список пропозалов */}
+      {/* Proposals list */}
       {!loading && (
         <div className="px-6 py-4">
           {filteredProposals.length === 0 ? (
@@ -423,18 +423,18 @@ const UserProposals: React.FC<UserProposalsProps> = ({
               {filter === 'all' ? (
                 <div>
                   <div className="text-4xl mb-3">📭</div>
-                  <div className="text-lg font-medium mb-2">Нет пропозалов</div>
+                  <div className="text-lg font-medium mb-2">No Proposals</div>
                   <div className="text-sm">
                     {safeOffChain.isSTSAvailable() 
-                      ? 'STS не содержит пропозалов для этого пользователя' 
-                      : 'Нет сохраненных пропозалов в локальном хранилище'
+                      ? 'STS contains no proposals for this user' 
+                      : 'No saved proposals in local storage'
                     }
                   </div>
                 </div>
               ) : (
                 <div>
                   <div className="text-2xl mb-2">🔍</div>
-                  <div>Нет пропозалов с таким статусом</div>
+                  <div>No proposals with this status</div>
                 </div>
               )}
             </div>
@@ -454,14 +454,14 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                         : 'border-gray-200'
                     }`}
                   >
-                    {/* Основная информация */}
+                    {/* Main information */}
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <span className={`text-lg ${status.color}`}>{status.icon}</span>
                           {isUpdating && (
                             <span className="text-sm text-blue-600 animate-pulse">
-                              🔄 Обновляется...
+                              🔄 Updating...
                             </span>
                           )}
                           <div>
@@ -495,11 +495,11 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                         </div>
                       </div>
                       
-                      {/* Краткая информация о подписях */}
+                      {/* Brief signature information */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm text-gray-600">
                           <div>
-                            <span className="font-medium">Подписи:</span>
+                            <span className="font-medium">Signatures:</span>
                             <span className={`ml-1 ${
                               (proposal.confirmations?.length || 0) >= proposal.confirmationsRequired 
                                 ? 'text-green-600' 
@@ -515,14 +515,14 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                           </div>
                           
                           <div>
-                            <span className="font-medium">Дата:</span>
+                            <span className="font-medium">Date:</span>
                             <span className="ml-1">
-                              {new Date(proposal.submissionDate).toLocaleDateString('ru-RU')}
+                              {new Date(proposal.submissionDate).toLocaleDateString('en-US')}
                             </span>
                           </div>
                         </div>
                         
-                        {/* Кнопки действий */}
+                        {/* Action buttons */}
                         <div className="flex gap-2">
                           {!proposal.isExecuted && (
                             <>
@@ -534,34 +534,34 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                                   disabled={actionLoading[proposal.safeTxHash] === 'signing'}
                                   className="px-3 py-1 bg-orange-100 text-orange-700 rounded text-sm hover:bg-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  {actionLoading[proposal.safeTxHash] === 'signing' ? '⏳ Подписание...' : '✍️ Подписать'}
+                                  {actionLoading[proposal.safeTxHash] === 'signing' ? '⏳ Signing...' : '✍️ Sign'}
                                 </button>
                               )}
                               
-                              {/* Показываем статус если пользователь уже подписал */}
+                              {/* Show status if user already signed */}
                               {proposal.confirmations?.some(conf => 
                                 conf.owner.toLowerCase() === userAddress.toLowerCase()
                               ) && (proposal.confirmations?.length || 0) < proposal.confirmationsRequired && (
                                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
-                                  ✅ Вы подписали
+                                  ✅ You Signed
                                 </span>
                               )}
                               
-                              {/* Показываем статус если threshold достигнут но пользователь не подписывал */}
+                              {/* Show status if threshold reached but user didn't sign */}
                               {!proposal.confirmations?.some(conf => 
                                 conf.owner.toLowerCase() === userAddress.toLowerCase()
                               ) && (proposal.confirmations?.length || 0) >= proposal.confirmationsRequired && (
                                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm">
-                                  🔒 Подписи собраны
+                                  🔒 Signatures Collected
                                 </span>
                               )}
                               
-                              {/* Показываем статус если пользователь подписал И threshold достигнут */}
+                              {/* Show status if user signed AND threshold reached */}
                               {proposal.confirmations?.some(conf => 
                                 conf.owner.toLowerCase() === userAddress.toLowerCase()
                               ) && (proposal.confirmations?.length || 0) >= proposal.confirmationsRequired && (
                                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
-                                  ✅ Готово к выполнению
+                                  ✅ Ready to Execute
                                 </span>
                               )}
                               
@@ -571,7 +571,7 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                                   disabled={actionLoading[proposal.safeTxHash] === 'executing'}
                                   className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  {actionLoading[proposal.safeTxHash] === 'executing' ? '⏳ Выполнение...' : '🚀 Выполнить'}
+                                  {actionLoading[proposal.safeTxHash] === 'executing' ? '⏳ Executing...' : '🚀 Execute'}
                                 </button>
                               )}
                             </>
@@ -581,13 +581,13 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                             onClick={() => handleProposalAction(proposal, ProposalAction.VIEW)}
                             className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors"
                           >
-                            👁️ Детали
+                            👁️ Details
                           </button>
                         </div>
                       </div>
                     </div>
                     
-                    {/* Развернутая информация */}
+                    {/* Expanded information */}
                     {isExpanded && (
                       <div className="border-t border-gray-100 bg-gray-50 p-4">
                         <div className="space-y-3">
@@ -611,7 +611,7 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                           {(proposal.confirmations?.length || 0) > 0 && (
                             <div>
                               <label className="text-sm font-medium text-gray-700 mb-2 block">
-                                Подписи ({proposal.confirmations?.length || 0}):
+                                Signatures ({proposal.confirmations?.length || 0}):
                               </label>
                               <div className="space-y-2">
                                 {proposal.confirmations?.map((conf, index) => (
@@ -621,12 +621,12 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                                         {formatAddress(conf.owner)}
                                         {conf.owner.toLowerCase() === userAddress.toLowerCase() && (
                                           <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                                            Вы
+                                            You
                                           </span>
                                         )}
                                       </div>
                                       <div className="text-xs text-gray-500">
-                                        {new Date(conf.submissionDate).toLocaleString('ru-RU')}
+                                        {new Date(conf.submissionDate).toLocaleString('en-US')}
                                       </div>
                                     </div>
                                     <div className="text-xs text-gray-400">
@@ -640,7 +640,7 @@ const UserProposals: React.FC<UserProposalsProps> = ({
                           
                           {proposal.dataDecoded && (
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Декодированные данные:</label>
+                              <label className="text-sm font-medium text-gray-700">Decoded Data:</label>
                               <div className="mt-1 p-2 bg-white border rounded text-xs">
                                 <pre className="whitespace-pre-wrap">
                                   {JSON.stringify(proposal.dataDecoded, null, 2)}

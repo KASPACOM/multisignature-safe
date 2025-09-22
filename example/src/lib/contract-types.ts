@@ -1,14 +1,14 @@
 /**
- * Типы для работы с контрактами и их ABI
+ * Types for working with contracts and their ABI
  */
 
-// Базовые типы для ABI
+// Basic types for ABI
 export interface ABIInput {
   name: string
   type: string
 }
 
-// Обработанная функция для UI
+// Processed function for UI
 export interface ParsedFunction {
   name: string
   signature: string
@@ -17,7 +17,7 @@ export interface ParsedFunction {
   stateMutability: 'pure' | 'view' | 'nonpayable' | 'payable'
 }
 
-// Конфигурация контракта
+// Contract configuration
 export interface ContractABI {
   name: string
   address: string
@@ -26,7 +26,7 @@ export interface ContractABI {
 }
 
 
-// Данные формы функции
+// Data for function form
 export interface FunctionFormData {
   parameters: { [key: string]: any }
   ethValue: string

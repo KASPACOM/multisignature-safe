@@ -1,25 +1,19 @@
-/* Tailwind CSS базовые директивы */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Глобальные стили для Safe Multisig App */
-
 :root {
-  /* Цветовая схема Safe */
   --safe-green: #12ff80;
   --safe-dark: #121312;
   --safe-gray: #8b949e;
   --safe-light-gray: #f6f7f8;
   
-  /* Дополнительные цвета */
   --success-color: #10b981;
   --error-color: #ef4444;
   --warning-color: #f59e0b;
   --info-color: #3b82f6;
 }
 
-/* Базовые стили */
 * {
   box-sizing: border-box;
   padding: 0;
@@ -36,7 +30,6 @@ body {
   color: #111827;
 }
 
-/* Улучшенная типографика */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   line-height: 1.2;
@@ -48,7 +41,6 @@ p {
   margin-bottom: 1em;
 }
 
-/* Кастомные утилиты для Web3 */
 .wallet-address {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.875rem;
@@ -65,7 +57,6 @@ p {
   word-break: break-all;
 }
 
-/* Стили для кнопок состояния */
 .btn-primary {
   @apply px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
 }
@@ -86,7 +77,6 @@ p {
   @apply px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
 }
 
-/* Стили для форм */
 .form-input {
   @apply w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow;
 }
@@ -95,7 +85,6 @@ p {
   @apply block text-sm font-medium text-gray-700 mb-2;
 }
 
-/* Стили для карточек */
 .card {
   @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
 }
@@ -104,7 +93,6 @@ p {
   @apply border-b border-gray-200 pb-4 mb-4;
 }
 
-/* Стили для статусов транзакций */
 .status-pending {
   @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800;
 }
@@ -121,7 +109,6 @@ p {
   @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800;
 }
 
-/* Загрузочные анимации */
 .loading-spinner {
   @apply inline-block w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin;
 }
@@ -138,7 +125,6 @@ p {
   80%, 100% { content: '...'; }
 }
 
-/* Улучшенные уведомления */
 .notification-enter {
   opacity: 0;
   transform: translateX(100%);
@@ -161,7 +147,6 @@ p {
   transition: opacity 300ms ease-in-out, transform 300ms ease-in-out;
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
   .card {
     @apply p-4;
@@ -172,7 +157,6 @@ p {
   }
 }
 
-/* Стили для темной темы (если понадобится) */
 @media (prefers-color-scheme: dark) {
   :root {
     --foreground-rgb: 255, 255, 255;
@@ -181,7 +165,6 @@ p {
   }
 }
 
-/* Кастомные скроллбары */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -200,19 +183,16 @@ p {
   background: #94a3b8;
 }
 
-/* Подсветка выбранного текста */
 ::selection {
   background-color: var(--safe-green);
   color: var(--safe-dark);
 }
 
-/* Фокус для доступности */
 :focus-visible {
   outline: 2px solid var(--info-color);
   outline-offset: 2px;
 }
 
-/* Анимации появления */
 .fade-in {
   animation: fadeIn 0.3s ease-in-out;
 }
@@ -228,7 +208,6 @@ p {
   }
 }
 
-/* Стили для подключения кошелька */
 .wallet-connection {
   border: 2px dashed #d1d5db;
   border-radius: 12px;
@@ -247,7 +226,6 @@ p {
   background-color: #f0fdf4;
 }
 
-/* Стили для Safe адресов */
 .safe-address {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;

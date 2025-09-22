@@ -1,5 +1,3 @@
-// Константы для Safe контрактов в различных сетях
-
 export interface NetworkContracts {
   safeL2Singleton: string
   safeProxyFactory: string
@@ -18,7 +16,7 @@ export interface NetworkConfig {
   stsUrl?: string
   contracts: NetworkContracts
 }
-// Конфигурации различных сетей
+// Configurations for different networks
 export const NETWORK_CONFIGS: Record<number, NetworkConfig> = {
   // Anvil Local
   31337: {
@@ -26,7 +24,7 @@ export const NETWORK_CONFIGS: Record<number, NetworkConfig> = {
     name: 'Anvil Local',
     rpcUrl: 'http://127.0.0.1:8545',
     stsUrl: 'http://127.0.0.1:8000/api',
-    // ✅ Реальные адреса контрактов, развернутых в Anvil
+    // ✅ Real contract addresses, deployed in Anvil
     contracts: {
       safeL2Singleton: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
       safeProxyFactory: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
@@ -40,32 +38,32 @@ export const NETWORK_CONFIGS: Record<number, NetworkConfig> = {
   }
 }
 
-// Функция для получения конфигурации сети
+// Function for getting network configuration
 export function getNetworkConfig(chainId?: number): NetworkConfig {
-  // Сначала пробуем из переменных окружения
+  // First try from environment variables
   const envChainId = chainId || 31337
 
-  // Используем предустановленную конфигурацию
+  // Use predefined configuration
   const config = NETWORK_CONFIGS[envChainId]
   if (!config) {
-    console.warn(`Сеть с chainId ${envChainId} не найдена, используется Anvil по умолчанию`)
+    console.warn(`Network with chainId ${envChainId} not found, using Anvil by default`)
     return NETWORK_CONFIGS[31337]
   }
 
   return config
 }
 
-// Функция для получения списка поддерживаемых сетей
+// Function for getting list of supported networks
 export function getSupportedNetworks(): NetworkConfig[] {
   return Object.values(NETWORK_CONFIGS)
 }
 
-// Функция для проверки, поддерживается ли сеть
+// Function for checking if network is supported
 export function isNetworkSupported(chainId: number): boolean {
   return chainId in NETWORK_CONFIGS
 }
 
-// Константы для UI
+// Constants for UI
 export const NETWORK_NAMES: Record<number, string> = {
   1: 'Ethereum',
   10: 'Optimism',

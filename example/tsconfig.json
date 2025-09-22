@@ -15,7 +15,6 @@
     "jsx": "preserve",
     "incremental": true,
     
-    // Настройки путей
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
@@ -24,12 +23,9 @@
       "@/components/*": ["./src/components/*"]
     },
     
-    // Дополнительные настройки для Web3
     "declaration": false,
     "declarationMap": false,
     "sourceMap": true,
-    
-    // Настройки для работы с BigInt и современными JS функциями
     "downlevelIteration": true,
     "allowSyntheticDefaultImports": true
   },

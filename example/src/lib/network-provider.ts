@@ -24,10 +24,10 @@ export class NetworkProvider {
     isLoading: false 
   }
   
-  // Коллбеки для уведомления об изменениях состояния
+  // Callbacks for notification of state changes
   private statusCallbacks: Set<(status: ConnectionStatus) => void> = new Set()
   
-  // Поддерживаемые сети
+  // Supported networks
   private supportedNetworks: Map<bigint, NetworkConfig> = new Map()
 
   constructor() {
@@ -37,9 +37,9 @@ export class NetworkProvider {
     this.initializeSupportedNetworks()
   }
 
-  // Инициализация поддерживаемых сетей
+  // Initialize supported networks
   private initializeSupportedNetworks() {
-    // Пока используем одну сеть из safe-common
+    // For now, we use one network from safe-common
     const networkConfig = getNetworkConfig()
 
     this.supportedNetworks.set(
@@ -53,25 +53,25 @@ export class NetworkProvider {
     )
   }
 
-  // Подписка на изменения состояния
+  // Subscribe to state changes
   onStatusChange(callback: (status: ConnectionStatus) => void): () => void {
     this.statusCallbacks.add(callback)
     
-    // Сразу вызываем callback с текущим состоянием
+    // Immediately call callback with the current state
     callback(this.currentStatus)
     
-    // Возвращаем функцию для отписки
+    // Return function for unsubscribing
     return () => {
       this.statusCallbacks.delete(callback)
     }
   }
 
-  // Обработка события и переход состояния
+  // Process event and state transition
   private processEvent(event: WalletEvent) {
-    console.log('🔄 NetworkProvider: Обработка события:', event.type, event)
+    console.log('🔄 NetworkProvider: Processing event:', event.type, event)
     console.log('📊 Текущее состояние:', this.currentStatus.state)
 
-    // Ищем подходящий переход
+    // Find suitable transition
     const transition = WALLET_TRANSITIONS.find(t => 
       t.from === this.currentStatus.state && 
       t.trigger === event.type &&
@@ -79,20 +79,20 @@ export class NetworkProvider {
     )
 
     if (!transition) {
-      console.warn('⚠️ NetworkProvider: Переход не найден для:', {
+      console.warn('⚠️ NetworkProvider: Transition not found for:', {
         from: this.currentStatus.state,
         trigger: event.type
       })
       return
     }
 
-    console.log('🎯 NetworkProvider: Переход:', `${transition.from} → ${transition.to}`)
+    console.log('🎯 NetworkProvider: Transition:', `${transition.from} → ${transition.to}`)
 
-    // Обновляем состояние на основе события
+    // Update state based on event
     this.updateStatus(transition.to, event)
   }
 
-  // Обновление состояния и уведомление подписчиков
+  // Update state and notify subscribers
   private updateStatus(newState: WalletState, event?: WalletEvent) {
     const previousState = this.currentStatus.state
     
@@ -102,7 +102,7 @@ export class NetworkProvider {
       isLoading: this.isLoadingState(newState)
     }
 
-    // Обновляем дополнительные поля на основе события
+    // Update additional fields based on event
     if (event) {
       switch (event.type) {
         case 'CONNECTION_SUCCESS':
@@ -129,122 +129,122 @@ export class NetworkProvider {
       }
     }
 
-    console.log('✅ NetworkProvider: Состояние обновлено:', {
+    console.log('✅ NetworkProvider: State updated:', {
       previous: previousState,
       current: this.currentStatus.state,
       hasNetwork: !!this.currentStatus.network,
       hasAccount: !!this.currentStatus.account
     })
 
-    // Уведомляем всех подписчиков
+    // Notify all subscribers
     this.statusCallbacks.forEach(callback => {
       try {
         callback({ ...this.currentStatus })
       } catch (error) {
-        console.error('❌ NetworkProvider: Ошибка в callback:', error)
+        console.error('❌ NetworkProvider: Error in callback:', error)
       }
     })
   }
 
-  // Проверка является ли состояние загрузочным
+  // Check if state is loading
   private isLoadingState(state: WalletState): boolean {
     return state === WalletState.Connecting
   }
 
-  // Обнаружение провайдера
+  // Detect provider
   private detectProvider() {
     if (typeof window !== 'undefined' && window.ethereum) {
       wallet = window.ethereum as Eth;
-      console.log('🔍 NetworkProvider: MetaMask обнаружен')
+      console.log('🔍 NetworkProvider: MetaMask detected')
       
       const provider = new ethers.BrowserProvider(wallet)
       this.processEvent({ type: 'PROVIDER_DETECTED', provider })
       
-      // Подписываемся на события MetaMask
+      // Subscribe to MetaMask events
       this.setupEventListeners()
     } else {
-      console.log('❌ NetworkProvider: MetaMask не найден')
+      console.log('❌ NetworkProvider: MetaMask not found')
       this.updateStatus(WalletState.Disconnected)
     }
   }
 
-  // Настройка слушателей событий MetaMask
+  // Setup MetaMask event listeners
   private setupEventListeners() {
     if (!wallet) return
 
-    // Смена аккаунтов
+    // Account change
     wallet.on('accountsChanged', (accounts: string[]) => {
-      console.log('👤 NetworkProvider: Аккаунты изменились:', accounts)
+      console.log('👤 NetworkProvider: Accounts changed:', accounts)
       
       if (accounts.length === 0) {
         this.processEvent({ type: 'DISCONNECTED' })
       } else {
         this.processEvent({ type: 'ACCOUNT_CHANGED', account: accounts[0] })
-        // После смены аккаунта сразу пытаемся переподключиться
+        // After account change, try to reconnect
         this.refresh()
       }
     })
 
-    // Смена сети
+    // Network change
     wallet.on('chainChanged', (chainIdHex: string) => {
       const chainId = BigInt(chainIdHex)
-      console.log('🌐 NetworkProvider: Сеть изменилась:', chainId.toString())
+      console.log('🌐 NetworkProvider: Network changed:', chainId.toString())
       
       this.processEvent({ type: 'NETWORK_CHANGED', chainId })
-      // После смены сети пытаемся переподключиться
+      // After network change, try to reconnect
       this.refresh()
     })
 
-    // Отключение
+    // Disconnect
     wallet.on('disconnect', () => {
-      console.log('🔌 NetworkProvider: Отключение')
+      console.log('🔌 NetworkProvider: Disconnect')
       this.processEvent({ type: 'DISCONNECTED' })
     })
   }
 
-  // Основной метод подключения к кошельку
+  // Main method for connecting to wallet
   async connect(): Promise<Network> {
-    console.log('🚀 NetworkProvider: Запрос подключения...')
+    console.log('🚀 NetworkProvider: Connect request...')
     
     this.processEvent({ type: 'CONNECT_REQUESTED' })
     
     try {
-      // Обновляем wallet на случай если он стал доступен
+      // Update wallet in case it became available
       if (typeof window !== 'undefined' && window.ethereum) {
         wallet = window.ethereum as Eth;
       }
       
       if (!wallet) {
-        throw new Error('MetaMask не установлен!')
+        throw new Error('MetaMask not installed!')
       }
 
-      // Создаем provider и получаем доступ к аккаунтам
+      // Create provider and get access to accounts
       const provider = new ethers.BrowserProvider(wallet)
       
-      // Запрашиваем доступ к аккаунтам
+      // Request access to accounts
       await provider.send('eth_requestAccounts', [])
       
-      // Получаем signer и информацию о сети
+      // Get signer and network information
       const signer = await provider.getSigner()
       const network = await provider.getNetwork()
       const account = await signer.getAddress()
       
-      console.log('✅ NetworkProvider: Подключение успешно:', {
+      console.log('✅ NetworkProvider: Connection successful:', {
         chainId: network.chainId.toString(),
         account
       })
 
-      // Проверяем поддерживается ли сеть
+      // Check if network is supported
       if (!this.supportedNetworks.has(network.chainId)) {
-        throw new Error(`Сеть ${network.chainId} не поддерживается`)
+        throw new Error(`Network ${network.chainId} not supported`)
       }
 
-      // Создаем Network объект
+      // Create Network object
       const networkInstance: Network = {
         id: network.chainId,
         provider: provider,
         signer,
-        eip1193Provider: wallet  // Сохраняем оригинальный window.ethereum
+        eip1193Provider: wallet  // Save original window.ethereum
       }
 
       this.processEvent({ 
@@ -256,23 +256,23 @@ export class NetworkProvider {
       return networkInstance
 
     } catch (error: any) {
-      console.error('❌ NetworkProvider: Ошибка подключения:', error)
+      console.error('❌ NetworkProvider: Connection error:', error)
       
       this.processEvent({ 
         type: 'CONNECTION_ERROR', 
-        error: error.message || 'Ошибка подключения к кошельку'
+        error: error.message || 'Connection error to wallet'
       })
       
       throw error
     }
   }
 
-  // Обновление текущего подключения (для переподключения)
+  // Update current connection (for reconnection)
   async refresh(): Promise<Network | null> {
-    console.log('🔄 NetworkProvider: Обновление подключения...')
+    console.log('🔄 NetworkProvider: Update connection...')
     
     try {
-      // Обновляем wallet на случай если он изменился
+      // Update wallet in case it changed
       if (typeof window !== 'undefined' && window.ethereum) {
         wallet = window.ethereum as Eth;
       }
@@ -284,7 +284,7 @@ export class NetworkProvider {
 
       const provider: BrowserProvider = new ethers.BrowserProvider(wallet)
       
-      // Проверяем есть ли подключенные аккаунты
+      // Check if there are connected accounts
       const accounts = await provider.listAccounts()
       if (accounts.length === 0) {
         this.processEvent({ type: 'DISCONNECTED' })
@@ -295,7 +295,7 @@ export class NetworkProvider {
       const network = await provider.getNetwork()
       const account = await signer.getAddress()
 
-      // Проверяем поддерживается ли сеть
+      // Check if network is supported
       if (!this.supportedNetworks.has(network.chainId)) {
         this.processEvent({ 
           type: 'CONNECTION_ERROR',
@@ -308,7 +308,7 @@ export class NetworkProvider {
         id: network.chainId,
         provider: provider,
         signer,
-        eip1193Provider: wallet  // Сохраняем оригинальный window.ethereum
+        eip1193Provider: wallet  // Save original window.ethereum
       }
 
       this.processEvent({ 
@@ -320,35 +320,35 @@ export class NetworkProvider {
       return networkInstance
 
     } catch (error: any) {
-      console.error('❌ NetworkProvider: Ошибка обновления:', error)
+      console.error('❌ NetworkProvider: Update error:', error)
       
       this.processEvent({ 
         type: 'CONNECTION_ERROR',
-        error: error.message || 'Ошибка обновления подключения'
+        error: error.message || 'Update error'
       })
       
       return null
     }
   }
 
-  // Отключение от кошелька
+  // Disconnect from wallet
   disconnect() {
-    console.log('🔌 NetworkProvider: Отключение...')
+    console.log('🔌 NetworkProvider: Disconnect...')
     this.processEvent({ type: 'DISCONNECTED' })
   }
 
-  // Проверка подключения
+  // Check connection
   isConnected(): boolean {
     return this.currentStatus.state === WalletState.Connected && 
            !!this.currentStatus.network
   }
 
-  // Получить конфигурацию сети по ID
+  // Get network configuration by ID
   getNetworkConfig(chainId: bigint): NetworkConfig | undefined {
     return this.supportedNetworks.get(chainId)
   }
 
-  // Получить список поддерживаемых сетей
+  // Get list of supported networks
   getSupportedNetworks(): NetworkConfig[] {
     return Array.from(this.supportedNetworks.values())
   }

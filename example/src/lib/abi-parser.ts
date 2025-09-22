@@ -1,12 +1,12 @@
 /**
- * Парсер ABI для извлечения функций контрактов
+ * ABI parser for extracting functions of contracts
  */
 
 import { ParsedFunction } from './contract-types'
 
 export class ABIParser {
   /**
-   * Извлекает функции из ABI
+   * Extracts functions from ABI
    */
   static parseFunctions(abi: any[]): ParsedFunction[] {
     return abi
@@ -21,7 +21,7 @@ export class ABIParser {
   }
 
   /**
-   * Создает сигнатуру функции
+   * Creates function signature
    */
   static createSignature(func: any): string {
     const params = func.inputs?.map((input: any) => input.type).join(',') || ''

@@ -1,6 +1,6 @@
 /**
- * Реестр контрактов для управления ABI и метаданными
- * Теперь загружает контракты из Safe Transaction Service API
+ * Contract registry for managing ABI and metadata
+ * Now loads contracts from Safe Transaction Service API
  */
 
 import { ContractABI, ParsedFunction } from './contract-types'
@@ -14,7 +14,7 @@ export class ContractRegistry {
   private loadingPromise: Promise<void> | null = null
 
   private constructor() {
-    // Конструктор пустой, инициализация будет в loadContracts()
+    // Constructor is empty, initialization will be in loadContracts()
   }
 
   static getInstance(): ContractRegistry {
@@ -25,19 +25,19 @@ export class ContractRegistry {
   }
 
   /**
-   * Инициализирует API клиент для заданного chainId
+   * Initializes API client for given chainId
    */
   initializeForChain(chainId: bigint): void {
-    console.log(`🔗 Инициализируем ContractRegistry для chainId: ${chainId}`)
+    console.log(`🔗 Initializes ContractRegistry for chainId: ${chainId}`)
     this.contractsAPI = new ContractsAPI(chainId)
     
-    // Очищаем предыдущие контракты при смене сети
+    // Clear previous contracts when changing network
     this.contracts.clear()
     this.loadingPromise = null
   }
 
   /**
-   * Загружает контракты из Safe Transaction Service API
+   * Loads contracts from Safe Transaction Service API
    */
   async loadContracts(options?: {
     limit?: number
@@ -46,22 +46,22 @@ export class ContractRegistry {
     forceReload?: boolean
   }): Promise<void> {
     if (!this.contractsAPI) {
-      throw new Error('ContractRegistry не инициализирован. Вызовите initializeForChain() сначала.')
+      throw new Error('ContractRegistry not initialized. Call initializeForChain() first.')
     }
 
-    // Если уже загружаем, ждем завершения текущей загрузки
+    // If already loading, wait for current loading to complete
     if (this.isLoading && this.loadingPromise) {
-      console.log('⏳ Контракты уже загружаются, ждем завершения...')
+      console.log('⏳ Contracts are already loading, waiting for completion...')
       return this.loadingPromise
     }
 
-    // Если уже загружены и не требуется перезагрузка
+    // If already loaded and not force reload
     if (this.contracts.size > 0 && !options?.forceReload) {
-      console.log(`✅ Контракты уже загружены: ${this.contracts.size}`)
+      console.log(`✅ Contracts already loaded: ${this.contracts.size}`)
       return
     }
 
-    console.log('🚀 Начинаем загрузку контрактов из API...')
+    console.log('🚀 Begin loading contracts from API...')
     this.isLoading = true
 
     this.loadingPromise = this.performLoad(options)
@@ -82,44 +82,44 @@ export class ContractRegistry {
     try {
       const contracts = await this.contractsAPI!.getContracts(options)
       
-      console.log(`📦 Получено контрактов из API: ${contracts.length}`)
+      console.log(`📦 Received contracts from API: ${contracts.length}`)
       
-      // Очищаем старые контракты
+      // Clear old contracts
       this.contracts.clear()
       
-      // Добавляем новые контракты
+      // Add new contracts
       contracts.forEach(contract => {
         this.addContract(contract)
       })
 
-      console.log(`✅ Успешно загружено контрактов: ${this.contracts.size}`)
+      console.log(`✅ Successfully loaded contracts: ${this.contracts.size}`)
       
     } catch (error: any) {
-      console.error('❌ Ошибка загрузки контрактов:', error)
-      throw new Error(`Не удалось загрузить контракты: ${error.message}`)
+      console.error('❌ Error loading contracts:', error)
+      throw new Error(`Failed to load contracts: ${error.message}`)
     }
   }
 
   /**
-   * Добавляет контракт в реестр
+   * Adds contract to registry
    */
   addContract(contract: ContractABI): void {
     const key = contract.address.toLowerCase()
     
-    // Убеждаемся, что parsedFunctions установлены
+    // Make sure parsedFunctions are set
     if (!contract.parsedFunctions) {
-      console.warn(`⚠️ Контракт ${contract.name} не имеет parsedFunctions, пропускаем`)
+      console.warn(`⚠️ Contract ${contract.name} does not have parsedFunctions, skipping`)
       return
     }
     
     this.contracts.set(key, contract)
     
-    console.log(`📝 Добавлен контракт ${contract.name} (${contract.address})`)
-    console.log(`   Функций для Safe: ${contract.parsedFunctions.length}`)
+    console.log(`📝 Added contract ${contract.name} (${contract.address})`)
+    console.log(`Functions for Safe proposals: ${contract.parsedFunctions.length}`)
   }
 
   /**
-   * Получает контракт по адресу
+   * Gets contract by address
    */
   getContract(address: string): ContractABI | null {
     const key = address.toLowerCase()
@@ -127,14 +127,14 @@ export class ContractRegistry {
   }
 
   /**
-   * Получает все контракты
+   * Gets all contracts
    */
   getAllContracts(): ContractABI[] {
     return Array.from(this.contracts.values())
   }
 
   /**
-   * Получает функции контракта
+   * Gets functions of contract
    */
   getContractFunctions(address: string): ParsedFunction[] {
     const contract = this.getContract(address)
@@ -142,7 +142,7 @@ export class ContractRegistry {
   }
 
   /**
-   * Получает функцию по адресу контракта и имени функции
+   * Gets function by address of contract and name of function
    */
   getFunction(address: string, functionName: string): ParsedFunction | null {
     const functions = this.getContractFunctions(address)
@@ -150,7 +150,7 @@ export class ContractRegistry {
   }
 
   /**
-   * Проверяет, существует ли контракт
+   * Checks if contract exists
    */
   hasContract(address: string): boolean {
     const key = address.toLowerCase()
@@ -158,33 +158,33 @@ export class ContractRegistry {
   }
 
   /**
-   * Загружает конкретный контракт по адресу из API
+   * Loads specific contract by address from API
    */
   async loadContract(address: string): Promise<ContractABI | null> {
     if (!this.contractsAPI) {
-      throw new Error('ContractRegistry не инициализирован. Вызовите initializeForChain() сначала.')
+      throw new Error('ContractRegistry not initialized. Call initializeForChain() first.')
     }
 
     try {
-      console.log(`🔍 Загружаем контракт из API: ${address}`)
+      console.log(`🔍 Loading contract from API: ${address}`)
       const contract = await this.contractsAPI.getContract(address)
       
       if (contract) {
         this.addContract(contract)
-        console.log(`✅ Контракт загружен и добавлен: ${contract.name}`)
+        console.log(`✅ Contract loaded and added: ${contract.name}`)
       } else {
-        console.log(`ℹ️ Контракт не найден в API: ${address}`)
+        console.log(`ℹ️ Contract not found in API: ${address}`)
       }
       
       return contract
     } catch (error: any) {
-      console.error(`❌ Ошибка загрузки контракта ${address}:`, error)
+      console.error(`❌ Error loading contract ${address}:`, error)
       throw error
     }
   }
 
   /**
-   * Получает статус загрузки
+   * Gets loading status
    */
   getLoadingStatus(): {
     isLoading: boolean
@@ -199,10 +199,10 @@ export class ContractRegistry {
   }
 
   /**
-   * Очищает все контракты
+   * Clears all contracts
    */
   clear(): void {
-    console.log('🧹 Очищаем реестр контрактов')
+    console.log('🧹 Clears contract registry')
     this.contracts.clear()
     this.contractsAPI = null
     this.loadingPromise = null
@@ -210,5 +210,4 @@ export class ContractRegistry {
   }
 }
 
-// Экспорт singleton instance
 export const contractRegistry = ContractRegistry.getInstance()

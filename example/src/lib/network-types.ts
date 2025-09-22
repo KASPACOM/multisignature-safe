@@ -7,7 +7,7 @@ export type Network = {
   id: bigint
   provider: ethers.BrowserProvider
   signer: ethers.Signer
-  eip1193Provider: Eip1193Provider  // Сырой window.ethereum для Safe SDK
+  eip1193Provider: Eip1193Provider
 }
 
 export const getSafeConfig = async (network: Network, options: {
@@ -18,14 +18,13 @@ export const getSafeConfig = async (network: Network, options: {
   const eth = network.eip1193Provider
   const signerAddress = await network.signer.getAddress()
   
-  // Создаем базовую конфигурацию
   const baseConfig = {
     provider: eth,
     signer: signerAddress,
     contractNetworks: options.contractNetworks
   }
   
-  // Возвращаем правильную конфигурацию в зависимости от параметров
+  // Return the correct configuration depending on the parameters
   if (options.safeAddress) {
     return {
       ...baseConfig,
@@ -42,9 +41,9 @@ export const getSafeConfig = async (network: Network, options: {
 }
 
 export enum WalletState {
-  Disconnected = 'Disconnected',  // Не подключен (включает: нет провайдера, отклонен, ошибка)
-  Connecting = 'Connecting',       // Подключается (любой loading процесс)
-  Connected = 'Connected'          // Подключен и готов к работе
+  Disconnected = 'Disconnected',  // Not connected (includes: no provider, rejected, error)
+  Connecting = 'Connecting',       // Connecting (any loading process)
+  Connected = 'Connected'          // Connected and ready to work
 }
 
 export type ConnectionStatus = {
@@ -80,16 +79,16 @@ export type StateTransition = {
 }
 
 export const WALLET_TRANSITIONS: StateTransition[] = [
-  // Универсальные переходы (работают из любого состояния)
+  // Universal transitions (work from any state)
   { from: WalletState.Disconnected, to: WalletState.Connecting, trigger: 'PROVIDER_DETECTED' },
   { from: WalletState.Disconnected, to: WalletState.Connecting, trigger: 'CONNECT_REQUESTED' },
   
-  // Переходы из состояния подключения
+  // Transitions from connecting state
   { from: WalletState.Connecting, to: WalletState.Connected, trigger: 'CONNECTION_SUCCESS' },
   { from: WalletState.Connecting, to: WalletState.Disconnected, trigger: 'CONNECTION_ERROR' },
   { from: WalletState.Connecting, to: WalletState.Disconnected, trigger: 'DISCONNECTED' },
   
-  // Переходы из подключенного состояния
+  // Transitions from connected state
   { from: WalletState.Connected, to: WalletState.Connecting, trigger: 'NETWORK_CHANGED' },
   { from: WalletState.Connected, to: WalletState.Connecting, trigger: 'ACCOUNT_CHANGED' },
   { from: WalletState.Connected, to: WalletState.Disconnected, trigger: 'DISCONNECTED' }

@@ -2,7 +2,7 @@ import axios from 'axios'
 import { ContractABI } from './contract-types'
 import { ABIParser } from './abi-parser'
 
-// Типы для API ответа Safe Transaction Service
+// Types for Safe Transaction Service API response
 export interface ContractAPIResponse {
   count: number
   next: string | null
@@ -24,18 +24,18 @@ export interface ContractAPIResult {
 }
 
 /**
- * API клиент для получения списка контрактов из Safe Transaction Service
+ * API client for getting list of contracts from Safe Transaction Service
  */
 export class ContractsAPI {
   private baseUrl: string
 
   constructor(chainId: bigint) {
-    // Определяем URL Safe Transaction Service на основе chainId
+    // Define URL Safe Transaction Service based on chainId
     this.baseUrl = this.getTxServiceUrl(chainId)
   }
 
   /**
-   * Получает URL Safe Transaction Service для заданного chainId
+   * Get URL Safe Transaction Service for given chainId
    */
   private getTxServiceUrl(chainId: bigint): string {
     const chainIdNumber = Number(chainId)
@@ -58,9 +58,9 @@ export class ContractsAPI {
       case 8453: // Base
         return 'https://safe-transaction-base.safe.global'
       case 31337: // Local/Anvil
-        return 'http://localhost:8000' // Предполагаем локальный Safe Transaction Service
+        return 'http://localhost:8000' // Assume local Safe Transaction Service
       default:
-        console.warn(`⚠️ Неизвестный chainId: ${chainIdNumber}, используем mainnet URL`)
+        console.warn(`⚠️ Unknown chainId: ${chainIdNumber}, using mainnet URL`)
         return 'https://safe-transaction-mainnet.safe.global'
     }
   }
@@ -74,7 +74,7 @@ export class ContractsAPI {
     trusted?: boolean
   }): Promise<ContractABI[]> {
     try {
-      console.log('🔍 Загружаем контракты из Safe Transaction Service...')
+      console.log('🔍 Loading contracts from Safe Transaction Service...')
       console.log('🌐 URL:', this.baseUrl)
 
       const params = new URLSearchParams()
@@ -83,30 +83,30 @@ export class ContractsAPI {
       if (options?.trusted !== undefined) params.append('trusted', options.trusted.toString())
 
       const url = `${this.baseUrl}/api/v1/contracts/`
-      console.log('📡 Полный URL запроса:', url + (params.toString() ? `?${params.toString()}` : ''))
+      console.log('📡 Full URL request:', url + (params.toString() ? `?${params.toString()}` : ''))
 
       const response = await axios.get<ContractAPIResponse>(url, {
         params: Object.fromEntries(params),
-        timeout: 10000, // 10 секунд таймаут
+        timeout: 10000, // 10 seconds timeout
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         }
       })
 
-      console.log('✅ Получен ответ от API:', {
+      console.log('✅ Received response from API:', {
         count: response.data.count,
         resultsLength: response.data.results.length,
         hasNext: !!response.data.next,
         hasPrevious: !!response.data.previous
       })
 
-      // Преобразуем API ответ в наш формат ContractABI
+      // Convert API response to our ContractABI format
       const contracts: ContractABI[] = response.data.results.map(result => {
-        console.log(`🔧 Парсим контракт: ${result.name} (${result.address})`)
+        console.log(`🔧 Parsing contract: ${result.name} (${result.address})`)
         
         const parsedFunctions = ABIParser.parseFunctions(result.contractAbi.abi)
-        console.log(`  📋 Найдено функций для Safe пропозалов: ${parsedFunctions.length}`)
+        console.log(`📋 Found functions for Safe proposals: ${parsedFunctions.length}`)
 
         return {
           name: result.displayName || result.name,
@@ -116,38 +116,38 @@ export class ContractsAPI {
         }
       })
 
-      console.log(`🎯 Успешно загружено контрактов: ${contracts.length}`)
+      console.log(`🎯 Successfully loaded contracts: ${contracts.length}`)
       return contracts
 
     } catch (error: any) {
-      console.error('❌ Ошибка загрузки контрактов из API:', error)
+      console.error('❌ Error loading contracts from API:', error)
       
       if (error.response) {
-        console.error('📊 Детали ошибки API:', {
+        console.error('📊 API error details:', {
           status: error.response.status,
           statusText: error.response.statusText,
           data: error.response.data
         })
-        throw new Error(`API ошибка: ${error.response.status} - ${error.response.statusText}`)
+        throw new Error(`API error: ${error.response.status} - ${error.response.statusText}`)
       } else if (error.request) {
-        console.error('🌐 Ошибка сети:', error.message)
-        throw new Error(`Ошибка сети: ${error.message}`)
+        console.error('🌐 Network error:', error.message)
+        throw new Error(`Network error: ${error.message}`)
       } else {
-        console.error('⚙️ Общая ошибка:', error.message)
-        throw new Error(`Ошибка: ${error.message}`)
+        console.error('⚙️ General error:', error.message)
+        throw new Error(`Error: ${error.message}`)
       }
     }
   }
 
   /**
-   * Получает информацию о конкретном контракте
+   * Get information about a specific contract
    */
   async getContract(address: string): Promise<ContractABI | null> {
     try {
-      console.log(`🔍 Загружаем контракт: ${address}`)
+      console.log(`🔍 Loading contract: ${address}`)
       
       const url = `${this.baseUrl}/api/v1/contracts/${address}/`
-      console.log('📡 URL запроса:', url)
+      console.log('📡 URL request:', url)
 
       const response = await axios.get<ContractAPIResult>(url, {
         timeout: 5000,
@@ -160,7 +160,7 @@ export class ContractsAPI {
       const result = response.data
       const parsedFunctions = ABIParser.parseFunctions(result.contractAbi.abi)
       
-      console.log(`✅ Контракт загружен: ${result.name}, функций: ${parsedFunctions.length}`)
+      console.log(`✅ Contract loaded: ${result.name}, functions: ${parsedFunctions.length}`)
 
       return {
         name: result.displayName || result.name,
@@ -171,11 +171,11 @@ export class ContractsAPI {
 
     } catch (error: any) {
       if (error.response?.status === 404) {
-        console.log(`ℹ️ Контракт не найден в API: ${address}`)
+        console.log(`ℹ️ Contract not found in API: ${address}`)
         return null
       }
       
-      console.error(`❌ Ошибка загрузки контракта ${address}:`, error)
+      console.error(`❌ Error loading contract ${address}:`, error)
       throw error
     }
   }

@@ -1,4 +1,3 @@
-import { ethers } from 'ethers'
 import SafeApiKit from '@safe-global/api-kit'
 import {
   SafeTransaction
@@ -8,19 +7,16 @@ import {
   SafeMultisigTransactionListResponse,
 } from '@safe-global/api-kit'
 import type {
-  SafeMultisigTransactionResponse,
-  SafeMultisigConfirmationResponse,
-  SignatureType,
-  DataDecoded
+  SafeMultisigConfirmationResponse
 } from '@safe-global/types-kit'
 
 import { getNetworkConfig } from './safe-common'
 
 
-// Используем тип, который возвращает getAllTransactions из API Kit
+// Use the type returned by getAllTransactions from API Kit
 export type UserProposal = SafeMultisigTransactionListResponse['results'][0]
 
-// Интерфейс для фильтров пропозалов пользователя
+// Interface for user proposal filters
 export interface UserProposalsFilter {
   userAddress: string
   safeAddress?: string
@@ -28,12 +24,12 @@ export interface UserProposalsFilter {
   trusted?: boolean
   limit?: number
   offset?: number
-  requiresUserSignature?: boolean // Только те, что требуют подписи от пользователя
+  requiresUserSignature?: boolean // Only those that require user signature
   sortBy?: 'submissionDate' | 'nonce' | 'modified'
   sortOrder?: 'asc' | 'desc'
 }
 
-// Интерфейс для результата универсальной операции  
+// Interface for universal operation result  
 export interface UniversalOperationResult {
   transactionHash: string
   safeTransaction: SafeTransaction
@@ -46,7 +42,7 @@ export interface UniversalOperationResult {
   }
 }
 
-// Класс для работы с Safe Transaction Service (STS)
+// Class for working with Safe Transaction Service (STS)
 export class SafeOffChain {
   private apiKit: SafeApiKit | null = null
   private networkConfig = getNetworkConfig()
@@ -55,11 +51,11 @@ export class SafeOffChain {
     this.initializeApiKit()
   }
 
-  // Инициализация API Kit
+  // Initialize API Kit
   private async initializeApiKit() {
     try {
       if (!this.networkConfig.stsUrl) {
-        console.warn('STS URL не настроен')
+        console.warn('STS URL not configured')
         return
       }
 
@@ -68,21 +64,21 @@ export class SafeOffChain {
         chainId: BigInt(this.networkConfig.chainId)
       })
 
-      console.log('✅ SafeApiKit инициализирован:', this.networkConfig.stsUrl)
+      console.log('✅ SafeApiKit initialized:', this.networkConfig.stsUrl)
     } catch (error) {
-      console.error('❌ Ошибка инициализации SafeApiKit:', error)
+      console.error('❌ SafeApiKit initialization error:', error)
     }
   }
 
-  // Проверка доступности STS
+  // Check STS availability
   isSTSAvailable(): boolean {
     return this.apiKit !== null
   }
 
-  // Получение информации о Safe из STS
+  // Get Safe information from STS
   async getSafeInfo(safeAddress: string) {
     if (!this.apiKit) {
-      throw new Error('STS недоступен')
+      throw new Error('STS unavailable')
     }
 
     const safeInfo = await this.apiKit.getSafeInfo(safeAddress)
@@ -99,16 +95,16 @@ export class SafeOffChain {
     }
   }
 
-  // Получение транзакции из STS
+  // Get transaction from STS
   async getTransaction(safeTxHash: string) {
     if (!this.apiKit) {
-      throw new Error('STS недоступен')
+      throw new Error('STS unavailable')
     }
 
     return await this.apiKit.getTransaction(safeTxHash)
   }
 
-  // Проверка, является ли адрес владельцем Safe
+  // Check if address is Safe owner
   async isOwner(safeAddress: string, ownerAddress: string): Promise<boolean> {
     try {
       const owners = (await this.getSafeInfo(safeAddress)).owners
@@ -118,45 +114,45 @@ export class SafeOffChain {
     }
   }
 
-  // Подтверждение транзакции через STS API Kit
+  // Confirm transaction via STS API Kit
   async confirmTransaction(
     safeTxHash: string,
     signature: string
   ): Promise<void> {
     if (!this.apiKit) {
-      throw new Error('STS недоступен')
+      throw new Error('STS unavailable')
     }
 
-    console.log('✅ Подтверждение транзакции:', safeTxHash)
+    console.log('✅ Confirming transaction:', safeTxHash)
 
     await this.apiKit.confirmTransaction(safeTxHash, signature)
-    console.log('🎉 Транзакция подтверждена в STS')
+    console.log('🎉 Transaction confirmed in STS')
   }
 
-  // Отправка универсальной операции в STS
+  // Send universal operation to STS
   async proposeUniversalResult(
     safeAddress: string,
     universalResult: UniversalOperationResult,
     senderAddress: string,
     origin?: string
   ): Promise<void> {
-    console.log('🚀 Отправка пропозала:', universalResult.transactionHash)
+    console.log('🚀 Sending proposal:', universalResult.transactionHash)
 
     if (!this.apiKit) {
-      throw new Error('STS недоступен')
+      throw new Error('STS unavailable')
     }
 
-    // Получаем подпись из транзакции
+    // Get signature from transaction
     const signature = universalResult.safeTransaction.signatures?.get(senderAddress.toLowerCase())
     if (!signature) {
-      throw new Error('Подпись не найдена в универсальной транзакции')
+      throw new Error('Signature not found in universal transaction')
     }
 
     try {
-      // Проверяем регистрацию Safe в STS
+      // Check Safe registration in STS
       await this.getSafeInfo(safeAddress)
       
-      // Отправляем транзакцию в STS
+      // Send transaction to STS
       const proposeTransactionProps: ProposeTransactionProps = {
         safeAddress,
         safeTransactionData: universalResult.safeTransaction.data,
@@ -167,47 +163,47 @@ export class SafeOffChain {
       }
 
       await this.apiKit.proposeTransaction(proposeTransactionProps)
-      console.log('✅ Пропозал отправлен в STS:', safeAddress)
+      console.log('✅ Proposal sent to STS:', safeAddress)
 
     } catch (error) {
-      console.error('❌ Ошибка отправки пропозала:', error)
+      console.error('❌ Proposal sending error:', error)
       throw error
     }
   }
 
   // ===============================================
-  // МЕТОДЫ ДЛЯ РАБОТЫ С ПРОПОЗАЛАМИ ПОЛЬЗОВАТЕЛЕЙ
+  // METHODS FOR WORKING WITH USER PROPOSALS
   // ===============================================
 
-  // Получение всех пропозалов для конкретного пользователя
+  // Get all proposals for a specific user
   async getUserProposals(filter: UserProposalsFilter): Promise<UserProposal[]> {
     const proposals: UserProposal[] = []
 
-    // Получаем все Safe, где пользователь является владельцем
+    // Get all Safes where user is owner
     const userSafes = filter.safeAddress ? [filter.safeAddress] : await this.getUserSafes(filter.userAddress)
 
     for (const safeAddress of userSafes) {
       try {
-        // Проверяем, является ли пользователь владельцем этого Safe
+        // Check if user is owner of this Safe
         const isUserOwner = await this.isOwner(safeAddress, filter.userAddress)
         if (!isUserOwner) {
           continue
         }
 
-        // Получаем транзакции для этого Safe
+        // Get transactions for this Safe
         const safeProposals = await this.getSTSProposalsOnly(safeAddress)
         proposals.push(...safeProposals)
 
       } catch (error) {
-        // Продолжаем обработку других Safe
+        // Continue processing other Safes
       }
     }
 
-    // Применяем фильтры и сортировку
+    // Apply filters and sorting
     return this.filterAndSortProposals(proposals, filter)
   }
 
-  // Получение статистики пропозалов пользователя
+  // Get user proposals statistics
   async getUserProposalsStats(userAddress: string): Promise<{
     total: number
     pending: number
@@ -276,7 +272,7 @@ export class SafeOffChain {
     }
   }
 
-  // Получение Safe контрактов пользователя
+  // Get user Safe contracts
   async getUserSafes(userAddress: string): Promise<string[]> {
     try {
       const allSafes = await this.apiKit?.getSafesByOwner(userAddress)
@@ -286,11 +282,11 @@ export class SafeOffChain {
     }
   }
 
-  // Фильтрация и сортировка пропозалов
+  // Filter and sort proposals
   private filterAndSortProposals(proposals: UserProposal[], filter: UserProposalsFilter): UserProposal[] {
     let filtered = [...proposals]
 
-    // Фильтрация по требованию подписи пользователя
+    // Filter by user signature requirement
     if (filter.requiresUserSignature) {
       filtered = filtered.filter(proposal => {
         if (proposal.isExecuted) return false
@@ -302,7 +298,7 @@ export class SafeOffChain {
       })
     }
 
-    // Сортировка
+    // Sorting
     const sortBy = filter.sortBy || 'submissionDate'
     const sortOrder = filter.sortOrder || 'desc'
 
@@ -327,7 +323,7 @@ export class SafeOffChain {
     return filtered
   }
 
-  // Получение пропозалов из STS
+  // Get proposals from STS
   private async getSTSProposalsOnly(safeAddress: string): Promise<UserProposal[]> {
     if (!this.apiKit) {
       return []
@@ -337,7 +333,7 @@ export class SafeOffChain {
       const response = await this.apiKit.getMultisigTransactions(safeAddress)
       return response.results
     } catch (error: any) {
-      // Если Safe не найден в STS (404), возвращаем пустой список
+      // If Safe not found in STS (404), return empty list
       if (error.status === 404 || error.message?.includes('Not Found')) {
         return []
       }
@@ -346,5 +342,5 @@ export class SafeOffChain {
   }
 }
 
-// Экспорт основного класса
+// Export main class
 export default SafeOffChain

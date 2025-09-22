@@ -9,14 +9,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Safe бренд цвета
         safe: {
           green: '#12ff80',
           dark: '#121312',
           gray: '#8b949e',
           light: '#f6f7f8',
         },
-        // Дополнительные цвета для статусов
         status: {
           pending: '#f59e0b',
           confirmed: '#3b82f6',
@@ -84,11 +82,8 @@ module.exports = {
     },
   },
   plugins: [
-    // Плагин для форм
     require('@tailwindcss/forms')({
       strategy: 'class',
     }),
-    // Плагин для типографии (опционально)
-    // require('@tailwindcss/typography'),
   ],
 }

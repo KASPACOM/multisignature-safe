@@ -34,14 +34,14 @@ const SafeManagement: React.FC<SafeManagementProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('create')
 
-  // Переключаемся на вкладку создания, если находимся на вкладке подключения, но onConnect не предоставлен
+  // Switch to create tab if we're on connect tab but onConnect is not provided
   useEffect(() => {
     if (activeTab === 'connect' && !onConnect) {
       setActiveTab('create')
     }
   }, [activeTab, onConnect])
 
-  // Автоматически переключаемся на вкладку подключения, если есть предзаполненные данные
+  // Automatically switch to connect tab if prefilled data is available
   useEffect(() => {
     if (prefilledData && onConnect) {
       setActiveTab('connect')
@@ -50,21 +50,21 @@ const SafeManagement: React.FC<SafeManagementProps> = ({
 
   return (
     <div className={`bg-white rounded-lg shadow ${className}`}>
-      {/* Заголовок и переключатель табов */}
+      {/* Header and tab switcher */}
       <div className="border-b border-gray-200">
         <div className="px-6 py-4">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            🏦 Управление Safe
+            🏦 Safe Management
           </h1>
           <p className="text-gray-600 text-sm">
             {onConnect ? 
-              'Создайте новый Safe мультисиг кошелек или подключитесь к существующему' :
-              'Создайте новый Safe мультисиг кошелек'
+              'Create a new Safe multisig wallet or connect to an existing one' :
+              'Create a new Safe multisig wallet'
             }
           </p>
         </div>
         
-        {/* Табы */}
+        {/* Tabs */}
         <div className="px-6">
           <div className="flex space-x-1">
             <button
@@ -75,7 +75,7 @@ const SafeManagement: React.FC<SafeManagementProps> = ({
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
-              🚀 Создать Safe
+              🚀 Create Safe
             </button>
             
             {onConnect && (
@@ -87,14 +87,14 @@ const SafeManagement: React.FC<SafeManagementProps> = ({
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                🔌 Подключиться к Safe
+                🔌 Connect to Safe
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Содержимое табов */}
+      {/* Tab content */}
       <div className="p-0">
         {activeTab === 'create' && (
           <SafeCreationForm
@@ -118,27 +118,27 @@ const SafeManagement: React.FC<SafeManagementProps> = ({
         )}
       </div>
 
-      {/* Дополнительная информация */}
+      {/* Additional information */}
       <div className="border-t border-gray-200 px-6 py-4">
         <div className={`grid grid-cols-1 ${onConnect ? 'md:grid-cols-2' : ''} gap-4`}>
           <div className="p-3 bg-blue-50 rounded-lg">
-            <h3 className="font-medium text-blue-900 mb-2">🚀 Создание нового Safe</h3>
+            <h3 className="font-medium text-blue-900 mb-2">🚀 Creating New Safe</h3>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Полный контроль над параметрами</li>
-              <li>• Выбор владельцев и порога подписей</li>
-              <li>• Потребуется оплата газа за развертывание</li>
-              <li>• Предсказуемый адрес до создания</li>
+              <li>• Full control over parameters</li>
+              <li>• Choose owners and signature threshold</li>
+              <li>• Requires gas payment for deployment</li>
+              <li>• Predictable address before creation</li>
             </ul>
           </div>
           
           {onConnect && (
             <div className="p-3 bg-purple-50 rounded-lg">
-              <h3 className="font-medium text-purple-900 mb-2">🔌 Подключение к существующему</h3>
+              <h3 className="font-medium text-purple-900 mb-2">🔌 Connect to Existing</h3>
               <ul className="text-sm text-purple-800 space-y-1">
-                <li>• Подключение к уже развернутому Safe</li>
-                <li>• Требуются точные параметры Safe</li>
-                <li>• Не требует оплаты газа</li>
-                <li>• Проверка соответствия параметров</li>
+                <li>• Connect to already deployed Safe</li>
+                <li>• Requires exact Safe parameters</li>
+                <li>• No gas payment required</li>
+                <li>• Parameter compliance verification</li>
               </ul>
             </div>
           )}
@@ -146,9 +146,9 @@ const SafeManagement: React.FC<SafeManagementProps> = ({
         
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-yellow-800 text-sm">
-            <strong>💡 Совет:</strong> {onConnect ? 
-              'Если у вас уже есть Safe, используйте "Подключение". Если нужен новый мультисиг кошелек, выберите "Создать Safe".' :
-              'Создайте новый Safe мультисиг кошелек для управления цифровыми активами с несколькими подписями.'
+            <strong>💡 Tip:</strong> {onConnect ? 
+              'If you already have a Safe, use "Connect". If you need a new multisig wallet, choose "Create Safe".' :
+              'Create a new Safe multisig wallet to manage digital assets with multiple signatures.'
             }
           </p>
         </div>

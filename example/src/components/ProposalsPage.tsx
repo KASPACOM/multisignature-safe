@@ -544,7 +544,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-mono text-sm text-gray-800">
-                          {formatAddress(safeAddress)}
+                          {safeAddress}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           🏠 Safe контракт

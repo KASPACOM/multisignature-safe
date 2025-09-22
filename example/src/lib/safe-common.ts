@@ -1,16 +1,16 @@
 import { ethers } from 'ethers'
 import { 
-  ContractNetworksConfig,
-  SafeAccountConfig,
-  SafeDeploymentConfig,
-  PredictedSafeProps
+  ContractNetworksConfig
 } from '@safe-global/protocol-kit'
 import { getNetworkConfig as getNetworkConfigFromConstants, NetworkConfig as ConstantsNetworkConfig } from './constants'
 
-// Переэкспортируем NetworkConfig из constants
+// Re-export NetworkConfig from constants
 export type NetworkConfig = ConstantsNetworkConfig
 
-// Получение конфигурации сети из констант
+// Default Safe version configuration
+export const DEFAULT_SAFE_VERSION = '1.4.1'
+
+// Get network configuration from constants
 export function getNetworkConfig(): NetworkConfig {
   const chainId = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '31337')
   const config = getNetworkConfigFromConstants(chainId)
@@ -31,19 +31,19 @@ export function createContractNetworksConfig(config: ConstantsNetworkConfig): Co
     }
   }
   
-  console.log('🛠️ createContractNetworksConfig создал:', contractNetworksConfig)
+  console.log('🛠️ createContractNetworksConfig created:', contractNetworksConfig)
   
   return contractNetworksConfig
 }
 
 
-// Получение провайдера для чтения данных
+// Get provider for reading data
 export function getProvider(): ethers.JsonRpcProvider {
   const config = getNetworkConfig()
   return new ethers.JsonRpcProvider(config.rpcUrl)
 }
 
-// Проверка подключения кошелька
+// Check wallet connection
 export async function checkWalletConnection(): Promise<ethers.Signer | null> {
   if (typeof window === 'undefined' || !window.ethereum) {
     return null
@@ -59,62 +59,62 @@ export async function checkWalletConnection(): Promise<ethers.Signer | null> {
 
     return await provider.getSigner()
   } catch (error) {
-    console.error('Ошибка при проверке подключения кошелька:', error)
+    console.error('Wallet connection check error:', error)
     return null
   }
 }
 
-// Подключение к кошельку
+// Connect to wallet
 export async function connectWallet(): Promise<ethers.Signer> {
   if (typeof window === 'undefined' || !window.ethereum) {
-    throw new Error('MetaMask не установлен')
+    throw new Error('MetaMask not installed')
   }
 
   try {
     await window.ethereum.request({ method: 'eth_requestAccounts' })
     const provider = new ethers.BrowserProvider(window.ethereum)
     
-    // Проверяем chain ID от MetaMask
+    // Check chain ID from MetaMask
     const network = await provider.getNetwork()
     console.log('🌍 MetaMask Chain ID:', network.chainId.toString())
     console.log('🌍 MetaMask Network:', network)
     
     return await provider.getSigner()
   } catch (error) {
-    console.error('Ошибка при подключении к кошельку:', error)
-    throw new Error('Не удалось подключиться к кошельку')
+    console.error('Wallet connection error:', error)
+    throw new Error('Failed to connect to wallet')
   }
 }
 
-// Утилита для проверки корректности адреса Ethereum
+// Utility for Ethereum address validation
 export function isValidAddress(address: string): boolean {
   return ethers.isAddress(address)
 }
 
-// Утилита для форматирования адреса (сокращение)
+// Utility for address formatting (abbreviation)
 export function formatAddress(address: string): string {
   if (!isValidAddress(address)) return address
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
-// Утилита для форматирования суммы в ETH
+// Utility for ETH amount formatting
 export function formatEthValue(value: string | bigint): string {
   return ethers.formatEther(value)
 }
 
-// Утилита для преобразования ETH в Wei
+// Utility for converting ETH to Wei
 export function parseEthValue(value: string): bigint {
   return ethers.parseEther(value)
 }
 
-// Получение баланса адреса
+// Get address balance
 export async function getBalance(address: string): Promise<string> {
   const provider = getProvider()
   const balance = await provider.getBalance(address)
   return formatEthValue(balance)
 }
 
-// Типы для расширения window с ethereum
+// Types for extending window with ethereum
 declare global {
   interface Window {
     ethereum?: {
@@ -125,21 +125,21 @@ declare global {
   }
 }
 
-// Обработчик событий смены аккаунта
+// Account change event handler
 export function onAccountsChanged(handler: (accounts: string[]) => void) {
   if (typeof window !== 'undefined' && window.ethereum) {
     window.ethereum.on('accountsChanged', handler)
   }
 }
 
-// Обработчик событий смены сети
+// Network change event handler
 export function onChainChanged(handler: (chainId: string) => void) {
   if (typeof window !== 'undefined' && window.ethereum) {
     window.ethereum.on('chainChanged', handler)
   }
 }
 
-// Очистка обработчиков событий
+// Clear event listeners
 export function removeEventListeners() {
   if (typeof window !== 'undefined' && window.ethereum) {
     window.ethereum.removeListener('accountsChanged', () => {})
