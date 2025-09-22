@@ -1,5 +1,5 @@
 /**
- * Компонент для ввода параметров функции контракта
+ * Component for inputting contract function parameters
  */
 
 import React, { useState, useEffect } from 'react'
@@ -18,7 +18,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
 }) => {
   useEffect(() => {
     if (selectedFunction) {
-      // Инициализируем пустые значения для новой функции
+      // Initialize empty values for new function
       const initialParameters: { [key: string]: any } = {}
       selectedFunction.inputs.forEach((input, index) => {
         const fieldName = input.name || `param${index}`
@@ -66,7 +66,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
           value={value}
           onChange={(e) => handleParameterChange(fieldName, e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-          placeholder={`Введите ${input.type}`}
+          placeholder={`Enter ${input.type}`}
         />
       </div>
     )
@@ -75,7 +75,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
   if (!selectedFunction) {
     return (
       <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center text-gray-500">
-        Сначала выберите функцию
+        First select a function
       </div>
     )
   }
@@ -83,7 +83,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-2 mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">📝 Параметры функции</h3>
+        <h3 className="text-lg font-semibold text-gray-900">📝 Function Parameters</h3>
         <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
           {selectedFunction.name}
         </span>
@@ -91,7 +91,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
 
       {selectedFunction.inputs.length === 0 ? (
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center text-blue-700">
-          Эта функция не требует параметров
+          This function requires no parameters
         </div>
       ) : (
         <div className="space-y-4">
@@ -102,7 +102,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
       {selectedFunction.payable && (
         <div className="space-y-2 p-4 bg-green-50 border border-green-200 rounded-lg">
           <label className="block text-sm font-medium text-green-800">
-            💰 ETH Value (опционально)
+            💰 ETH Value (optional)
           </label>
           <input
             type="text"
@@ -112,7 +112,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
             placeholder="0.0"
           />
           <p className="text-xs text-green-600">
-            Количество ETH для отправки с транзакцией
+            Amount of ETH to send with the transaction
           </p>
         </div>
       )}

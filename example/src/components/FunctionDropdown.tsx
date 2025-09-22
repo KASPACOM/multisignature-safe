@@ -1,5 +1,5 @@
 /**
- * Dropdown для выбора функции из выбранного контракта
+ * Dropdown for selecting function from selected contract
  */
 
 import React, { useState, useEffect } from 'react'
@@ -18,7 +18,7 @@ export const FunctionDropdown: React.FC<FunctionDropdownProps> = ({
   contractAddress,
   onFunctionSelect,
   selectedFunction,
-  placeholder = "Выберите функцию...",
+  placeholder = "Select function...",
   showOnlyPayable = false
 }) => {
   const [functions, setFunctions] = useState<ParsedFunction[]>([])
@@ -28,33 +28,33 @@ export const FunctionDropdown: React.FC<FunctionDropdownProps> = ({
     if (contractAddress) {
       let contractFunctions = contractRegistry.getContractFunctions(contractAddress)
       
-      // ВАЖНО: Для Safe пропозалов нужны только state-changing функции (не view/pure)
-      // View/Pure функции не требуют multisig подписи
+      // IMPORTANT: For Safe proposals we only need state-changing functions (not view/pure)
+      // View/Pure functions do not require multisig signatures
       contractFunctions = contractFunctions.filter(f => 
         f.stateMutability !== 'view' && f.stateMutability !== 'pure'
       )
       
-      // Дополнительно фильтруем только payable функции если нужно
+      // Additionally filter only payable functions if needed
       if (showOnlyPayable) {
         contractFunctions = contractFunctions.filter(f => f.payable)
       }
       
       setFunctions(contractFunctions)
-      console.log(`📋 Загружены state-changing функции для Safe пропозала:`, contractFunctions.length)
-      console.log(`   - Всего функций в ABI: ${contractRegistry.getContractFunctions(contractAddress).length}`)
+      console.log(`📋 State-changing functions loaded for Safe proposal:`, contractFunctions.length)
+      console.log(`   - Total functions in ABI: ${contractRegistry.getContractFunctions(contractAddress).length}`)
       console.log(`   - State-changing: ${contractFunctions.length}`)
     } else {
       setFunctions([])
     }
     
-    // Сбрасываем выбранную функцию при смене контракта
+    // Reset selected function when contract changes
     onFunctionSelect(null)
   }, [contractAddress, showOnlyPayable, onFunctionSelect])
 
   const handleFunctionSelect = (func: ParsedFunction) => {
     onFunctionSelect(func)
     setIsOpen(false)
-    console.log('✅ Выбрана функция:', func.name)
+    console.log('✅ Function selected:', func.name)
   }
 
   const clearSelection = () => {
@@ -66,10 +66,10 @@ export const FunctionDropdown: React.FC<FunctionDropdownProps> = ({
     return (
       <div className="relative opacity-50">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          ⚙️ Выберите функцию
+          ⚙️ Select Function
         </label>
         <div className="relative w-full bg-gray-100 border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-3 text-gray-500 cursor-not-allowed">
-          <span className="block truncate">Сначала выберите контракт</span>
+          <span className="block truncate">First select a contract</span>
           <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
             <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -83,10 +83,10 @@ export const FunctionDropdown: React.FC<FunctionDropdownProps> = ({
   return (
     <div className="relative">
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        ⚙️ Выберите функцию
+        ⚙️ Select Function
         {showOnlyPayable && (
           <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-            только payable
+            only payable
           </span>
         )}
       </label>
@@ -112,11 +112,11 @@ export const FunctionDropdown: React.FC<FunctionDropdownProps> = ({
                   </span>
                 )}
                 <span className="ml-2 text-xs text-gray-500">
-                  ({selectedFunction.inputs.length} параметров)
+                  ({selectedFunction.inputs.length} parameters)
                 </span>
               </div>
             ) : functions.length === 0 ? (
-              <span className="text-gray-500">Нет доступных функций</span>
+              <span className="text-gray-500">No available functions</span>
             ) : (
               <span className="text-gray-500">{placeholder}</span>
             )}
@@ -135,7 +135,7 @@ export const FunctionDropdown: React.FC<FunctionDropdownProps> = ({
                 onClick={clearSelection}
                 className="cursor-pointer select-none relative py-2 pl-3 pr-9 text-gray-500 hover:bg-gray-50 border-b border-gray-100"
               >
-                <span className="block truncate text-sm">Очистить выбор</span>
+                <span className="block truncate text-sm">Clear selection</span>
               </div>
             )}
             
@@ -167,7 +167,7 @@ export const FunctionDropdown: React.FC<FunctionDropdownProps> = ({
                 {func.inputs.length > 0 && (
                   <div className="mt-2">
                     <p className="text-xs font-medium text-gray-600 mb-1">
-                      Параметры ({func.inputs.length}):
+                      Parameters ({func.inputs.length}):
                     </p>
                     <div className="space-y-1">
                       {func.inputs.slice(0, 3).map((input, index) => (
@@ -180,7 +180,7 @@ export const FunctionDropdown: React.FC<FunctionDropdownProps> = ({
                       ))}
                       {func.inputs.length > 3 && (
                         <div className="text-xs text-gray-400">
-                          ... и еще {func.inputs.length - 3} параметров
+                          ... and {func.inputs.length - 3} more parameters
                         </div>
                       )}
                     </div>
@@ -202,10 +202,10 @@ export const FunctionDropdown: React.FC<FunctionDropdownProps> = ({
 
       {functions.length > 0 && (
         <div className="mt-2 text-xs text-gray-600">
-          <span>Доступно функций: </span>
+          <span>Available functions: </span>
           <span className="font-medium">{functions.length}</span>
           {showOnlyPayable && (
-            <span className="text-green-600"> (только payable)</span>
+            <span className="text-green-600"> (only payable)</span>
           )}
         </div>
       )}

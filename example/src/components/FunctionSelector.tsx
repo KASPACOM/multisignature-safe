@@ -1,5 +1,5 @@
 /**
- * Компонент для выбора функции контракта
+ * Component for selecting contract function
  */
 
 import React, { useState, useEffect } from 'react'
@@ -25,16 +25,16 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
     if (contractAddress) {
       const contractFunctions = contractRegistry.getContractFunctions(contractAddress)
       setFunctions(contractFunctions)
-      console.log(`📋 Загружены функции для контракта ${contractAddress}:`, contractFunctions.length)
+      console.log(`📋 Functions loaded for contract ${contractAddress}:`, contractFunctions.length)
     } else {
       setFunctions([])
     }
     
-    // Сбрасываем выбранную функцию при смене контракта
+    // Reset selected function when contract changes
     onFunctionSelect(null)
   }, [contractAddress, onFunctionSelect])
 
-  // Фильтрация функций
+  // Filter functions
   const filteredFunctions = functions.filter(func => {
     const matchesSearch = func.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          func.signature.toLowerCase().includes(searchQuery.toLowerCase())
@@ -47,7 +47,7 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
   })
 
   const handleFunctionSelect = (func: ParsedFunction) => {
-    console.log('✅ Выбрана функция:', func.name)
+    console.log('✅ Function selected:', func.name)
     onFunctionSelect(func)
   }
 
@@ -58,7 +58,7 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
           <svg className="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <p className="text-gray-500">Сначала выберите контракт</p>
+          <p className="text-gray-500">First select a contract</p>
         </div>
       </div>
     )
@@ -71,9 +71,9 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
           <svg className="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
-          <p className="text-yellow-800 font-medium">ABI не загружен</p>
+          <p className="text-yellow-800 font-medium">ABI not loaded</p>
           <p className="text-yellow-700 text-sm mt-1">
-            Для этого контракта нет доступных функций. Используйте ручной ввод.
+            This contract has no available functions. Use manual input.
           </p>
         </div>
       </div>
@@ -83,18 +83,18 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">⚙️ Выбор функции</h3>
+        <h3 className="text-lg font-semibold text-gray-900">⚙️ Function Selection</h3>
         <div className="text-sm text-gray-500">
-          Найдено: {filteredFunctions.length} из {functions.length}
+          Found: {filteredFunctions.length} of {functions.length}
         </div>
       </div>
 
-      {/* Фильтры */}
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <input
             type="text"
-            placeholder="Поиск по названию или сигнатуре..."
+            placeholder="Search by name or signature..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
@@ -109,7 +109,7 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Все
+            All
           </button>
           <button
             onClick={() => setFilterPayable('payable')}
@@ -129,12 +129,12 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            🔧 Обычные
+            🔧 Regular
           </button>
         </div>
       </div>
 
-      {/* Список функций */}
+      {/* Function list */}
       <div className="space-y-2 max-h-96 overflow-y-auto">
         {filteredFunctions.map((func) => (
           <div
@@ -164,7 +164,7 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
                 </p>
                 {func.inputs.length > 0 && (
                   <div className="mt-3">
-                    <p className="text-xs font-medium text-gray-700 mb-1">Параметры:</p>
+                    <p className="text-xs font-medium text-gray-700 mb-1">Parameters:</p>
                     <div className="space-y-1">
                       {func.inputs.map((input, index) => (
                         <div key={index} className="text-xs text-gray-600 flex">
@@ -192,11 +192,11 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
 
       {filteredFunctions.length === 0 && searchQuery && (
         <div className="text-center py-8 text-gray-500">
-          <p>Функции не найдены по запросу "{searchQuery}"</p>
+          <p>No functions found for query "{searchQuery}"</p>
         </div>
       )}
 
-      {/* Информация о выбранной функции */}
+      {/* Selected function information */}
       {selectedFunction && (
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex">
@@ -207,11 +207,11 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-green-800">
-                Функция выбрана: {selectedFunction.name}
+                Function selected: {selectedFunction.name}
               </h3>
               <p className="mt-1 text-sm text-green-700">
-                Параметров: {selectedFunction.inputs.length}
-                {selectedFunction.payable && ' | Принимает ETH'}
+                Parameters: {selectedFunction.inputs.length}
+                {selectedFunction.payable && ' | Accepts ETH'}
               </p>
             </div>
           </div>
