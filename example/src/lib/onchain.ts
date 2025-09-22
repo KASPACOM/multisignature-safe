@@ -402,28 +402,18 @@ export class SafeOnChain {
     const safeSdk = this.getSafeSdk()
     const valueInWei = transactionParams.value.toString()
 
+    console.log('Transaction params:', transactionParams)
+
     const metaTransactionData: MetaTransactionData = {
       to: transactionParams.to,
       value: valueInWei,
       data: transactionParams.data
     }
 
-    // Для ETH транзакций оцениваем газ
-    let safeTxGas = '0'
-    if (transactionParams.value > 0n) {
-      const gasEstimate = await this.network.provider.estimateGas({
-        to: transactionParams.to,
-        value: transactionParams.value.toString(),
-        data: transactionParams.data,
-        from: this.currentSafeAddress!
-      })
-      safeTxGas = gasEstimate.toString()
-    }
-
     const safeTransaction = await safeSdk.createTransaction({
       transactions: [metaTransactionData],
       options: {
-        safeTxGas: safeTxGas
+        safeTxGas: '0'
       }
     })
 
