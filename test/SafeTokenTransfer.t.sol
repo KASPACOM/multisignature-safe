@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: LGPL-3.0-only
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.7.0 <0.9.0;
+pragma abicoder v2;
 
 import "forge-std/Test.sol";
 import {SafeL2} from "safe-smart-account/SafeL2.sol";
@@ -23,8 +24,13 @@ contract SafeTokenTransferTest is Test {
     MockERC20 internal token;
 
     function setUp() public {
+        ownerPks[0] = 0xA11CE;
+        ownerPks[1] = 0xB11CE;
+        ownerPks[2] = 0xC11CE;
+        owners[0] = vm.addr(ownerPks[0]);
+        owners[1] = vm.addr(ownerPks[1]);
+        owners[2] = vm.addr(ownerPks[2]);
 
-        TODO: vm.deal to populate token to owners
         _sortOwners();
 
         safeSingleton = new SafeL2();
