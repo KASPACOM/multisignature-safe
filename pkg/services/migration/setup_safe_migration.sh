@@ -32,7 +32,7 @@
 #   --dry-run                    Only show commands without execution
 #   --help                       Show help
 # =============================================================================
-
+TODO: В общем не нужен большой функционал, просто инициализировать, беззвучно
 set -euo pipefail
 
 # Colors for output
@@ -73,23 +73,8 @@ ADMIN_PASSWORD=""
 MIGRATION_DIR=""
 CONTRACTS_CONFIG_DIR=""
 
-# Logging functions
-log() {
-    echo -e "${BLUE}[$(date +'%H:%M:%S')]${NC} $1"
-}
 
-log_success() {
-    echo -e "${GREEN}[$(date +'%H:%M:%S')] ✅${NC} $1"
-}
-
-log_warning() {
-    echo -e "${YELLOW}[$(date +'%H:%M:%S')] ⚠️${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[$(date +'%H:%M:%S')] ❌${NC} $1"
-}
-
+TODO: Падаем громко, а успех во всем, то молчим
 # Load configuration from JSON file
 load_config() {
     local script_dir="$(dirname "$0")"
@@ -109,9 +94,7 @@ load_config() {
         log "All fields are required and must be properly filled."
         exit 1
     fi
-    
-    # Load configuration using jq or Python
-    if command -v jq &> /dev/null; then
+
         # Use jq if available
         SAFE_CONFIG_FILE=$(jq -r '.paths.safe_contracts_file' "$config_path")
         CUSTOM_CONTRACTS_CONFIG=$(jq -r '.paths.custom_contracts_file' "$config_path")
@@ -129,13 +112,7 @@ load_config() {
         ADMIN_PASSWORD=$(jq -r '.admin.password' "$config_path")
         MIGRATION_DIR=$(jq -r '.paths.migration_dir' "$config_path")
         CONTRACTS_CONFIG_DIR=$(jq -r '.paths.contracts_config_dir' "$config_path")
-    else
-        # Fallback to Python if jq is not available
-        local python_script="
-import json
-with open('$config_path', 'r') as f: c = json.load(f)
-for k,v in [('SAFE_CONFIG_FILE',c['paths']['safe_contracts_file']),('CUSTOM_CONTRACTS_CONFIG',c['paths']['custom_contracts_file']),('CONTAINER_NAME',c['container']['name']),('API_HOST',c['api']['host']),('API_PORT',c['api']['port']),('API_BASE_URL',c['api']['base_url']),('FLOWER_URL',c['api']['flower_url']),('ADMIN_URL',c['api']['admin_url']),('DB_HOST',c['database']['host']),('DB_USER',c['database']['user']),('DB_NAME',c['database']['name']),('ADMIN_USERNAME',c['admin']['username']),('ADMIN_EMAIL',c['admin']['email']),('ADMIN_PASSWORD',c['admin']['password']),('MIGRATION_DIR',c['paths']['migration_dir']),('CONTRACTS_CONFIG_DIR',c['paths']['contracts_config_dir'])]: print(f'{k}={v}')
-"
+
         
         local config_vars=$(python3 -c "$python_script" 2>/dev/null)
         if [ $? -eq 0 ]; then
@@ -230,6 +207,7 @@ create_superuser() {
     if [ "$FORCE_SUPERUSER" = false ]; then
         # Check superuser existence
         log "Checking superuser existence..."
+
         local check_result=$(run_in_container "python manage.py shell -c \"from django.contrib.auth import get_user_model; User = get_user_model(); print('EXISTS' if User.objects.filter(is_superuser=True).exists() else 'NOT_EXISTS')\"" 2>/dev/null | grep -o "EXISTS\|NOT_EXISTS" | tail -1)
         
         if [ "$check_result" = "EXISTS" ]; then
@@ -242,28 +220,9 @@ create_superuser() {
         fi
     fi
     
+    TODO: Просто DJANGO_SUPERUSER_USERNAME=admin DJANGO_SUPERUSER_EMAIL=admin@example.com DJANGO_SUPERUSER_PASSWORD=admin123 docker compose exec web python manage.py createsuperuser --no-input
     # Create superuser
-    log "Creating superuser..."
-    run_in_container "python manage.py shell -c \"
-from django.contrib.auth import get_user_model
-import os
 
-User = get_user_model()
-username = os.environ.get('DJANGO_SUPERUSER_USERNAME', '$ADMIN_USERNAME')
-email = os.environ.get('DJANGO_SUPERUSER_EMAIL', '$ADMIN_EMAIL')
-password = os.environ.get('DJANGO_SUPERUSER_PASSWORD', '$ADMIN_PASSWORD')
-
-if User.objects.filter(username=username).exists():
-    user = User.objects.get(username=username)
-    user.is_superuser = True
-    user.is_staff = True
-    user.save()
-    print('✅ Superuser {} updated'.format(username))
-else:
-    User.objects.create_superuser(username, email, password)
-    print('✅ Superuser {} created'.format(username))
-\""
-    log_success "Superuser configured"
 }
 
 # 3. Setup service

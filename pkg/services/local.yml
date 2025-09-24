@@ -1,5 +1,6 @@
 volumes:
   nginx-shared:
+  migrations:
 
 services:
   nginx:
@@ -62,6 +63,8 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - nginx-shared:/nginx
+      TODO: Давай попробуем использовать механизм миграций чтобы все параметры, контракты, админа применить во время деплоя, добавив просто 1 миграцию в файл
+      - migrations:/app/migration
     command: docker/web/run_web.sh
 
   # Воркер для индексации и основной обработки

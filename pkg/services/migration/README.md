@@ -18,6 +18,7 @@ migration/
 ## ⚡ Quick Start
 
 ### 1. Setup Configuration
+
 ```bash
 cd migration/
 
@@ -32,6 +33,7 @@ vim contracts-config/contracts.json
 ```
 
 ### 2. Run Migration
+
 ```bash
 # Complete migration with all steps
 ./setup_safe_migration.sh
@@ -41,6 +43,7 @@ vim contracts-config/contracts.json
 ```
 
 ### 3. View Configuration
+
 ```bash
 # View active contracts
 cat contracts-config/contracts.json | jq '.contracts[] | select(.enabled == true)'
@@ -60,7 +63,7 @@ class ContractAbi(models.Model):
     description = models.TextField()   # Description
     relevance = models.IntegerField()  # Relevance
 
-class Contract(models.Model):  
+class Contract(models.Model):
     address = models.CharField()       # Contract address
     name = models.CharField()          # Name
     contract_abi = models.ForeignKey(ContractAbi)  # 🔗 ABI LINK
@@ -68,13 +71,15 @@ class Contract(models.Model):
 ```
 
 **Creation process:**
+
 1. `ContractAbi` is created with JSON ABI array
-2. `Contract` is created with reference to `ContractAbi`  
+2. `Contract` is created with reference to `ContractAbi`
 3. API automatically returns contract together with ABI
 
 ## 📋 Configuration Files
 
 ### config.json format:
+
 ```json
 {
   "admin": {
@@ -113,13 +118,14 @@ class Contract(models.Model):
 ```
 
 ### safe-contracts.json format:
+
 ```json
 {
   "proxy_factories": [
     {
       "name": "Safe Proxy Factory",
       "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-      "description": "Safe Proxy Factory v1.4.1", 
+      "description": "Safe Proxy Factory v1.4.1",
       "initial_block": 0,
       "tx_block_number": 2,
       "enabled": true,
@@ -131,7 +137,7 @@ class Contract(models.Model):
       "name": "Safe Master Copy 1.4.1",
       "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
       "description": "Safe Master Copy implementation v1.4.1",
-      "initial_block": 0, 
+      "initial_block": 0,
       "tx_block_number": 2,
       "version": "1.4.1",
       "enabled": true,
@@ -143,6 +149,7 @@ class Contract(models.Model):
 ```
 
 ### contracts.json format:
+
 ```json
 {
   "contracts": [
@@ -150,7 +157,7 @@ class Contract(models.Model):
       "name": "ERC20Mintable",
       "display_name": "ERC20 Mintable",
       "address": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-      "abi_file": "abis/ERC20Mintable.json", 
+      "abi_file": "abis/ERC20Mintable.json",
       "description": "ERC20 Mintable contract",
       "relevance": 100,
       "trusted_for_delegate_call": false,
@@ -163,11 +170,13 @@ class Contract(models.Model):
 ### Adding new contract:
 
 1. **Create ABI file:**
+
    ```bash
    echo '[{"type":"function","name":"balanceOf"...}]' > contracts-config/abis/NewToken.json
    ```
 
 2. **Add to contracts.json:**
+
    ```json
    {
      "name": "New Token",
@@ -185,6 +194,7 @@ class Contract(models.Model):
 ## 🎯 What setup_safe_migration.sh does
 
 **Complete automated migration:**
+
 1. ✅ **Configuration loading and validation** (from `config.json`)
    - Load all settings from main configuration
    - Validate required fields are present
@@ -192,7 +202,7 @@ class Contract(models.Model):
 2. ✅ Services check (PostgreSQL, Redis)
 3. ✅ Django migrations (`python manage.py migrate`)
 4. ✅ Superuser creation (using config credentials)
-5. ✅ Service setup (`python manage.py setup_service`)  
+5. ✅ Service setup (`python manage.py setup_service`)
 6. ✅ **Safe contracts setup** (from `safe-contracts.json`)
    - Proxy Factories from configuration
    - Safe Master Copies from configuration
@@ -207,7 +217,7 @@ class Contract(models.Model):
 ## 🔧 Migration Options
 
 ```bash
-# Complete migration  
+# Complete migration
 ./setup_safe_migration.sh
 
 # Force update everything
@@ -228,7 +238,7 @@ class Contract(models.Model):
 # Custom main configuration
 ./setup_safe_migration.sh --config my-config.json
 
-# Custom contracts configuration files  
+# Custom contracts configuration files
 ./setup_safe_migration.sh --safe-config my-safe.json --custom-config my-contracts.json
 
 # Help
@@ -238,11 +248,13 @@ class Contract(models.Model):
 ## 🌐 After Migration
 
 **Available services:**
+
 - **API:** http://localhost:8000/api/v1/
-- **Admin:** http://localhost:8000/admin/  
+- **Admin:** http://localhost:8000/admin/
 - **Contracts:** http://localhost:8000/api/v1/contracts/
 
 **Result verification:**
+
 ```bash
 # Contracts list
 curl http://localhost:8000/api/v1/contracts/ | jq
@@ -259,13 +271,16 @@ curl http://localhost:8000/api/v1/about/ | jq
 All settings are managed through JSON configuration files:
 
 ### Required Configuration Files:
+
 1. **`config.json`** - Main configuration (REQUIRED)
+
    - Admin user credentials
    - API endpoints and ports
    - Database settings
    - Container names and paths
 
-2. **`safe-contracts.json`** - Safe contracts configuration  
+2. **`safe-contracts.json`** - Safe contracts configuration
+
    - Proxy Factories addresses and settings
    - Master Copies addresses and versions
 
@@ -274,11 +289,13 @@ All settings are managed through JSON configuration files:
    - Contract metadata and settings
 
 ### Configuration Validation:
+
 - All fields in `config.json` are required
 - Admin password cannot be default `"your_password_here"`
 - Script validates configuration before execution
 
 ### Environment Variables (Optional):
+
 ```bash
 # RPC connection (if needed for custom setup)
 ETHEREUM_NODE_URL=http://host.docker.internal:8545
@@ -292,20 +309,27 @@ DJANGO_SUPERUSER_PASSWORD=secure_password
 ## 🔍 Troubleshooting
 
 ### Container not found
+
 ```bash
 docker-compose ps                    # Check status
 docker-compose up -d                 # Start containers
 ```
 
+TODO: Use docker compose
+
 ### Database connection error
+
 ```bash
 docker exec -it safe-forge-deploy-web-1 pg_isready -h db
 ```
 
 ### Contracts not loading
+
 ```bash
 # Force contracts loading
 ./setup_safe_migration.sh --force-all
+
+TODO: Use docker compose
 
 # Check RPC connection
 docker exec -it safe-forge-deploy-web-1 python manage.py shell -c "
@@ -314,12 +338,10 @@ print(requests.get('http://host.docker.internal:8545', json={'method': 'eth_chai
 "
 ```
 
-### Permission issues
-```bash
-chmod +x setup_safe_migration.sh
-```
-
 ### Configuration file not found
+
+TODO: Just check
+
 ```bash
 # Check main configuration exists
 ls -la contracts-config/config.json
@@ -330,36 +352,41 @@ ls -la contracts-config/abis/
 ```
 
 ### Configuration validation errors
+
 ```bash
 # Check configuration fields
 ./setup_safe_migration.sh --dry-run
 
 # Validate JSON syntax
 jq . contracts-config/config.json
-jq . contracts-config/safe-contracts.json  
+jq . contracts-config/safe-contracts.json
 jq . contracts-config/contracts.json
 ```
 
 ### Default password error
+
 ```
 Please change the default admin password in configuration!
 ```
+
 **Solution**: Edit `config.json` and change `"password": "your_password_here"` to a secure password
 
 ## 🏗️ Django Models (for understanding linking)
 
 ### Contract model
+
 ```python
 class Contract(models.Model):
     address = models.CharField(max_length=42, unique=True)
-    name = models.CharField(max_length=200) 
+    name = models.CharField(max_length=200)
     display_name = models.CharField(max_length=200)
     contract_abi = models.ForeignKey(ContractAbi, on_delete=models.CASCADE)
     trusted_for_delegate_call = models.BooleanField(default=False)
 ```
 
 ### ContractAbi model
-```python  
+
+```python
 class ContractAbi(models.Model):
     abi = models.JSONField()
     description = models.TextField(blank=True)
@@ -369,39 +396,51 @@ class ContractAbi(models.Model):
 ## ❌ Common Errors
 
 ### 1. Contract without ABI
+
 ```
 django.db.IntegrityError: Contract must have contract_abi
 ```
+
 **Solution**: Always create ContractAbi before Contract
 
 ### 2. Invalid ABI format
+
 ```
 ValidationError: Invalid ABI format
 ```
+
 **Solution**: Check that ABI is a JSON array with correct structure
 
 ### 3. Container not running
+
 ```
 Error: No such container: safe-forge-deploy-web-1
 ```
+
 **Solution**: Run `docker-compose up -d` before migration
 
 ### 4. Main configuration file not found
+
 ```
 Configuration file contracts-config/config.json not found!
 ```
+
 **Solution**: Create and fill `contracts-config/config.json` with all required settings
 
 ### 5. Missing configuration fields
+
 ```
 Missing fields: ADMIN_PASSWORD API_HOST CONTAINER_NAME
 ```
+
 **Solution**: Check that all required fields are present in `config.json`
 
 ### 6. Default password not changed
+
 ```
 Please change the default admin password in configuration!
 ```
+
 **Solution**: Set a secure password in `config.json` instead of `"your_password_here"`
 
 ## 🔄 ABI File Formats
@@ -409,6 +448,7 @@ Please change the default admin password in configuration!
 Two formats are supported:
 
 **Format 1: Direct ABI array**
+
 ```json
 [
   {
@@ -421,11 +461,12 @@ Two formats are supported:
 ```
 
 **Format 2: Object with abi field**
+
 ```json
 {
   "abi": [
     {
-      "type": "function", 
+      "type": "function",
       "name": "balanceOf",
       "inputs": [...],
       "outputs": [...]
@@ -443,3 +484,5 @@ Two formats are supported:
 ---
 
 🎉 **Done!** All migration tools are organized and ready to use.
+
+TODO: Можно сжать в общем

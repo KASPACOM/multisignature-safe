@@ -1,5 +1,6 @@
 # 🛡️ Safe Transaction Service - Deployment & Migration
 
+TODO: TRANSLATE
 Полный набор инструментов для развертывания и настройки Safe Transaction Service с поддержкой кастомных контрактов и ABI.
 
 ## 🚀 Быстрый старт
@@ -53,22 +54,26 @@ safe-forge-deploy/
 ## 🎯 Основные компоненты
 
 ### 1. **Safe Transaction Service** (Docker)
+
 - **PostgreSQL** - база данных транзакций
 - **Redis** - кэширование и очереди Celery
 - **Safe Transaction Service** - основной API
 - **Nginx** - reverse proxy
 
 ### 2. **Migration Tools** (Python/Bash)
+
 - **setup_safe_migration.sh** - полная автоматизированная миграция
 - **add_custom_contract.py** - управление кастомными контрактами
 - **contracts-config/** - структурированная конфигурация ABI
 
 ### 3. **Smart Contracts** (Solidity/Foundry)
+
 - **Safe Proxy Factory** - фабрика Safe кошельков
 - **Safe Master Copy** - эталонная реализация Safe
 - **Custom Contracts** - пользовательские контракты
 
-### 4. **Frontend App** (Next.js/TypeScript)  
+### 4. **Frontend App** (Next.js/TypeScript)
+
 - **Contract Selector** - выбор контрактов из API
 - **Function Forms** - интерфейс для вызова функций
 - **Safe Management** - создание и управление Safe
@@ -86,8 +91,9 @@ safe-forge-deploy/
 ```
 
 **Что включает миграция:**
+
 - ✅ Создание суперпользователя Django
-- ✅ Настройка Proxy Factories + ABI  
+- ✅ Настройка Proxy Factories + ABI
 - ✅ Настройка Safe Master Copies + ABI
 - ✅ Создание Contract ↔ ContractABI связей
 - ✅ Проверки состояния системы
@@ -95,24 +101,28 @@ safe-forge-deploy/
 ## 🔧 Управление контрактами
 
 ### Просмотр доступных контрактов
+
 ```bash
 cd migration/
 python add_custom_contract.py --config contracts-config/contracts.json --list
 ```
 
 ### Добавление всех контрактов из конфигурации
+
 ```bash
-cd migration/  
+cd migration/
 python add_custom_contract.py --config contracts-config/contracts.json --batch
 ```
 
 ### Добавление конкретного контракта
+
 ```bash
 cd migration/
 python add_custom_contract.py --config contracts-config/contracts.json --name "WKAS Token"
 ```
 
 ### Ручное добавление контракта
+
 ```bash
 cd migration/
 python add_custom_contract.py \
@@ -125,14 +135,15 @@ python add_custom_contract.py \
 
 После успешной миграции доступны:
 
-| Сервис | URL | Описание |
-|--------|-----|----------|
-| **Safe Transaction Service API** | http://localhost:8000 | Основной API |
-| **Admin Panel** | http://localhost:8000/admin/ | Django админка |
-| **Flower (Celery)** | http://localhost:5555 | Мониторинг Celery |
-| **Frontend App** | http://localhost:3000 | Тестовое приложение |
+| Сервис                           | URL                          | Описание            |
+| -------------------------------- | ---------------------------- | ------------------- |
+| **Safe Transaction Service API** | http://localhost:8000        | Основной API        |
+| **Admin Panel**                  | http://localhost:8000/admin/ | Django админка      |
+| **Flower (Celery)**              | http://localhost:5555        | Мониторинг Celery   |
+| **Frontend App**                 | http://localhost:3000        | Тестовое приложение |
 
 **Логин для админки:**
+
 - Пользователь: `admin` (или `$DJANGO_SUPERUSER_USERNAME`)
 - Пароль: `admin123` (или `$DJANGO_SUPERUSER_PASSWORD`)
 
@@ -160,11 +171,12 @@ curl -X POST http://localhost:8000/api/v1/safes/ \
 
 ```bash
 # Копировать пример
+TODO: не совпадает описание переменных окружения, есть 2 файла: .env и .env.sts, надо это актуализировать
 cp env-example .env.sts
 
 # Основные настройки
 DJANGO_SUPERUSER_USERNAME=admin
-DJANGO_SUPERUSER_EMAIL=admin@example.com  
+DJANGO_SUPERUSER_EMAIL=admin@example.com
 DJANGO_SUPERUSER_PASSWORD=admin123
 ETHEREUM_NODE_URL=http://host.docker.internal:8545
 ENABLE_SAFE_SETUP_CONTRACTS=1
@@ -175,11 +187,13 @@ ENABLE_SAFE_SETUP_CONTRACTS=1
 ### Добавление нового контракта в конфигурацию
 
 1. **Создать ABI файл:**
+
    ```bash
    echo '[{"type":"function",...}]' > migration/contracts-config/abis/NewContract.json
    ```
 
 2. **Обновить конфигурацию:**
+
    ```json
    // migration/contracts-config/contracts.json
    {
@@ -217,16 +231,19 @@ forge script script/DeploySafe.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
 ## 🔄 Обновления и откаты
 
 ### Обновление контрактов
+
 ```bash
 ./setup_migration.sh --force-contracts
 ```
 
 ### Откат миграций Django
+
 ```bash
 docker exec -it safe-forge-deploy-web-1 python manage.py migrate contracts 0001
 ```
 
 ### Очистка всех контрактов
+
 ```bash
 docker exec -it safe-forge-deploy-web-1 python manage.py shell -c "
 from contracts.models import Contract, ContractAbi
@@ -244,12 +261,14 @@ ContractAbi.objects.all().delete()
 ## 🆘 Troubleshooting
 
 ### Контейнеры не запускаются
+
 ```bash
 docker-compose down && docker-compose up -d
 docker-compose logs -f web
 ```
 
 ### API недоступен
+
 ```bash
 # Проверить состояние контейнеров
 docker-compose ps
@@ -259,6 +278,7 @@ docker-compose logs web
 ```
 
 ### Контракты не загружаются
+
 ```bash
 # Принудительная загрузка
 ./setup_migration.sh --force-contracts
@@ -268,6 +288,7 @@ docker exec -it safe-forge-deploy-web-1 env | grep ETHEREUM
 ```
 
 ### Ошибки Django
+
 ```bash
 # Войти в контейнер
 docker exec -it safe-forge-deploy-web-1 bash
@@ -284,7 +305,7 @@ python manage.py migrate
 1. Fork репозиторий
 2. Создайте feature branch (`git checkout -b feature/new-feature`)
 3. Commit изменения (`git commit -am 'Add new feature'`)
-4. Push в branch (`git push origin feature/new-feature`) 
+4. Push в branch (`git push origin feature/new-feature`)
 5. Создайте Pull Request
 
 ---

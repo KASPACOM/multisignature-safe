@@ -1,7 +1,7 @@
 {
   "admin": {
     "username": "admin",
-    "email": "admin@ee.com", 
+    "email": "admin@ee.com",
     "password": "admin123"
   },
   "api": {
@@ -12,12 +12,13 @@
     "flower_url": "http://127.0.0.1:5555",
     "admin_url": "http://127.0.0.1:8000/admin/"
   },
+  TODO: Use service name instead of container name
   "container": {
     "name": "safe-forge-deploy-web-1"
   },
   "database": {
     "host": "db",
-    "user": "postgres", 
+    "user": "postgres",
     "name": "default"
   },
   "paths": {
