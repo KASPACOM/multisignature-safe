@@ -194,3 +194,21 @@ To enable transaction data decoding and convenient function selection when creat
 - DAO governance contracts
 - Custom application contracts
 - Token contracts with custom functions
+
+## Frontend Production
+
+```bash
+cd pkg/example
+
+# Setup environment
+cp env.production.example .env.production.local
+
+# Docker build and run
+docker build -t safe-frontend .
+docker run -p 3000:3000 --env-file .env.production.local safe-frontend
+```
+
+Required variables:
+
+- **NEXT_PUBLIC_CHAIN_ID**: Target network (167012)
+- **NEXT_PUBLIC_STS_URL**: Safe Transaction Service URL

@@ -35,6 +35,9 @@ const nextConfig = {
   
   experimental: {
   },
+  
+  // Enable standalone output for Docker
+  output: 'standalone',
 }
 
 module.exports = nextConfig
