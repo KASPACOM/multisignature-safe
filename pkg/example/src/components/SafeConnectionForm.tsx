@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from 'react'
-import { SafeConnectionForm as SafeConnectionFormData, createSafeConnectionForm } from '../lib/onchain'
-import { DEFAULT_SAFE_VERSION } from '../lib/safe-common'
+import React, { useState, useEffect } from "react";
+import {
+  SafeConnectionForm as SafeConnectionFormData,
+  createSafeConnectionForm,
+} from "../lib/onchain";
+import { DEFAULT_SAFE_VERSION } from "../lib/safe-common";
 
 interface SafeConnectionFormProps {
-  onConnect: (formData: SafeConnectionFormData) => void
-  onCancel?: () => void
-  loading?: boolean
-  title?: string
-  className?: string
+  onConnect: (formData: SafeConnectionFormData) => void;
+  onCancel?: () => void;
+  loading?: boolean;
+  title?: string;
+  className?: string;
   prefilledData?: {
-    address: string
-    owners: string[]
-    threshold: number
-  } | null
+    address: string;
+    owners: string[];
+    threshold: number;
+  } | null;
 }
 
 const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
@@ -21,134 +24,138 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
   loading = false,
   title = "Connect to Safe",
   className = "",
-  prefilledData
+  prefilledData,
 }) => {
   const [formData, setFormData] = useState<SafeConnectionFormData>({
-    safeAddress: '',
-    owners: [''],
+    safeAddress: "",
+    owners: [""],
     threshold: 1,
     safeVersion: DEFAULT_SAFE_VERSION,
-    fallbackHandler: ''
-  })
+    fallbackHandler: "",
+  });
 
-  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Pre-fill form with navigation data
   useEffect(() => {
     if (prefilledData) {
-      console.log('🔄 Pre-filling Safe connection form:', prefilledData)
+      console.log("Pre-filling Safe connection form:", prefilledData);
       setFormData({
         safeAddress: prefilledData.address,
         owners: prefilledData.owners,
         threshold: prefilledData.threshold,
         safeVersion: DEFAULT_SAFE_VERSION,
-        fallbackHandler: ''
-      })
+        fallbackHandler: "",
+      });
     }
-  }, [prefilledData])
+  }, [prefilledData]);
 
   // Form validation
   const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {}
+    const newErrors: { [key: string]: string } = {};
 
     // Check Safe address
     if (!formData.safeAddress.trim()) {
-      newErrors.safeAddress = 'Enter Safe address'
+      newErrors.safeAddress = "Enter Safe address";
     } else if (!formData.safeAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-      newErrors.safeAddress = 'Invalid Ethereum address format'
+      newErrors.safeAddress = "Invalid Ethereum address format";
     }
 
     // Check owners
-    const validOwners = formData.owners.filter(owner => owner.trim())
+    const validOwners = formData.owners.filter((owner) => owner.trim());
     if (validOwners.length === 0) {
-      newErrors.owners = 'Add at least one owner'
+      newErrors.owners = "Add at least one owner";
     } else {
-      const invalidOwners = validOwners.filter(owner => !owner.match(/^0x[a-fA-F0-9]{40}$/))
+      const invalidOwners = validOwners.filter(
+        (owner) => !owner.match(/^0x[a-fA-F0-9]{40}$/)
+      );
       if (invalidOwners.length > 0) {
-        newErrors.owners = 'Invalid owner address format'
+        newErrors.owners = "Invalid owner address format";
       }
     }
 
     // Check threshold
     if (formData.threshold < 1) {
-      newErrors.threshold = 'Threshold must be greater than 0'
+      newErrors.threshold = "Threshold must be greater than 0";
     } else if (formData.threshold > validOwners.length) {
-      newErrors.threshold = 'Threshold cannot be greater than number of owners'
+      newErrors.threshold = "Threshold cannot be greater than number of owners";
     }
 
     // Check fallbackHandler (if specified)
-    if (formData.fallbackHandler && formData.fallbackHandler.trim() && 
-        !formData.fallbackHandler.match(/^0x[a-fA-F0-9]{40}$/)) {
-      newErrors.fallbackHandler = 'Invalid fallback handler address format'
+    if (
+      formData.fallbackHandler &&
+      formData.fallbackHandler.trim() &&
+      !formData.fallbackHandler.match(/^0x[a-fA-F0-9]{40}$/)
+    ) {
+      newErrors.fallbackHandler = "Invalid fallback handler address format";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!validateForm()) {
-      return
+      return;
     }
 
     // Clear empty owners and create final form
     const finalFormData = createSafeConnectionForm(
       formData.safeAddress.trim(),
-      formData.owners.filter(owner => owner.trim()),
+      formData.owners.filter((owner) => owner.trim()),
       formData.threshold,
       {
         safeVersion: formData.safeVersion || DEFAULT_SAFE_VERSION,
-        fallbackHandler: formData.fallbackHandler?.trim() || undefined
+        fallbackHandler: formData.fallbackHandler?.trim() || undefined,
       }
-    )
+    );
 
-    onConnect(finalFormData)
-  }
+    onConnect(finalFormData);
+  };
 
   // Update form field
   const updateField = (field: keyof SafeConnectionFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error for this field
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
-  }
+  };
 
   // Add owner
   const addOwner = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      owners: [...prev.owners, '']
-    }))
-  }
+      owners: [...prev.owners, ""],
+    }));
+  };
 
   // Remove owner
   const removeOwner = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      owners: prev.owners.filter((_, i) => i !== index)
-    }))
-  }
+      owners: prev.owners.filter((_, i) => i !== index),
+    }));
+  };
 
   // Update owner
   const updateOwner = (index: number, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      owners: prev.owners.map((owner, i) => i === index ? value : owner)
-    }))
-  }
+      owners: prev.owners.map((owner, i) => (i === index ? value : owner)),
+    }));
+  };
 
   return (
     <div className={`p-6 bg-white rounded-lg shadow ${className}`}>
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          🔌 {title}
-        </h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{title}</h2>
         <p className="text-gray-600 text-sm">
-          Specify Safe parameters for connection. Make sure all data matches the actual Safe.
+          Specify Safe parameters for connection. Make sure all data matches the
+          actual Safe.
         </p>
       </div>
 
@@ -161,10 +168,10 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
           <input
             type="text"
             value={formData.safeAddress}
-            onChange={(e) => updateField('safeAddress', e.target.value)}
+            onChange={(e) => updateField("safeAddress", e.target.value)}
             placeholder="0x1234567890123456789012345678901234567890"
             className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.safeAddress ? 'border-red-300' : 'border-gray-300'
+              errors.safeAddress ? "border-red-300" : "border-gray-300"
             }`}
           />
           {errors.safeAddress && (
@@ -186,7 +193,7 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
               + Add Owner
             </button>
           </div>
-          
+
           <div className="space-y-2">
             {formData.owners.map((owner, index) => (
               <div key={index} className="flex gap-2">
@@ -196,7 +203,7 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
                   onChange={(e) => updateOwner(index, e.target.value)}
                   placeholder={`Owner address ${index + 1}`}
                   className={`flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.owners ? 'border-red-300' : 'border-gray-300'
+                    errors.owners ? "border-red-300" : "border-gray-300"
                   }`}
                 />
                 {formData.owners.length > 1 && (
@@ -225,11 +232,11 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
           <input
             type="number"
             min="1"
-            max={formData.owners.filter(o => o.trim()).length || 1}
+            max={formData.owners.filter((o) => o.trim()).length || 1}
             value={formData.threshold}
-            onChange={(e) => updateField('threshold', e.target.value)}
+            onChange={(e) => updateField("threshold", e.target.value)}
             className={`w-32 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.threshold ? 'border-red-300' : 'border-gray-300'
+              errors.threshold ? "border-red-300" : "border-gray-300"
             }`}
           />
           {errors.threshold && (
@@ -239,7 +246,6 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
             Number of signatures required to execute transactions
           </p>
         </div>
-
 
         {/* Buttons */}
         <div className="flex gap-4 pt-6 border-t">
@@ -254,10 +260,10 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
                 Connecting...
               </div>
             ) : (
-              '🔌 Connect to Safe'
+              "Connect to Safe"
             )}
           </button>
-          
+
           {onCancel && (
             <button
               type="button"
@@ -273,16 +279,20 @@ const SafeConnectionForm: React.FC<SafeConnectionFormProps> = ({
 
       {/* Information */}
       <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h4 className="font-medium text-blue-900 mb-2">💡 Important Information</h4>
+        <h4 className="font-medium text-blue-900 mb-2">
+          Important Information
+        </h4>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• Make sure the Safe address is correct</li>
           <li>• Owners and threshold must match the actual Safe</li>
           <li>• Incorrect parameters may lead to errors during operation</li>
-          <li>• After connection, you will be able to create and sign transactions</li>
+          <li>
+            • After connection, you will be able to create and sign transactions
+          </li>
         </ul>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SafeConnectionForm
+export default SafeConnectionForm;

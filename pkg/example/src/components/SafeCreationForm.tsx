@@ -1,17 +1,20 @@
-import React, { useState } from 'react'
-import { SafeCreationForm as SafeCreationFormData, createSafeCreationForm } from '../lib/onchain'
-import { DEFAULT_SAFE_VERSION } from '../lib/safe-common'
+import React, { useState } from "react";
+import {
+  SafeCreationForm as SafeCreationFormData,
+  createSafeCreationForm,
+} from "../lib/onchain";
+import { DEFAULT_SAFE_VERSION } from "../lib/safe-common";
 
 interface SafeCreationFormProps {
-  onCreate: (formData: SafeCreationFormData) => void
-  onPredict?: (formData: SafeCreationFormData) => void
-  onCancel?: () => void
-  loading?: boolean
-  predicting?: boolean
-  predictedAddress?: string
-  title?: string
-  className?: string
-  userAddress?: string
+  onCreate: (formData: SafeCreationFormData) => void;
+  onPredict?: (formData: SafeCreationFormData) => void;
+  onCancel?: () => void;
+  loading?: boolean;
+  predicting?: boolean;
+  predictedAddress?: string;
+  title?: string;
+  className?: string;
+  userAddress?: string;
 }
 
 const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
@@ -23,144 +26,148 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
   predictedAddress,
   title = "Create Safe",
   className = "",
-  userAddress
+  userAddress,
 }) => {
   const [formData, setFormData] = useState<SafeCreationFormData>({
-    owners: [userAddress || ''],
+    owners: [userAddress || ""],
     threshold: 1,
     safeVersion: DEFAULT_SAFE_VERSION,
-    fallbackHandler: ''
-  })
+    fallbackHandler: "",
+  });
 
-  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Form validation
   const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {}
+    const newErrors: { [key: string]: string } = {};
 
     // Check owners
-    const validOwners = formData.owners.filter(owner => owner.trim())
+    const validOwners = formData.owners.filter((owner) => owner.trim());
     if (validOwners.length === 0) {
-      newErrors.owners = 'Add at least one owner'
+      newErrors.owners = "Add at least one owner";
     } else {
-      const invalidOwners = validOwners.filter(owner => !owner.match(/^0x[a-fA-F0-9]{40}$/))
+      const invalidOwners = validOwners.filter(
+        (owner) => !owner.match(/^0x[a-fA-F0-9]{40}$/)
+      );
       if (invalidOwners.length > 0) {
-        newErrors.owners = 'Invalid owner address format'
+        newErrors.owners = "Invalid owner address format";
       }
 
       // Check for duplicates
-      const uniqueOwners = new Set(validOwners.map(o => o.toLowerCase()))
+      const uniqueOwners = new Set(validOwners.map((o) => o.toLowerCase()));
       if (uniqueOwners.size !== validOwners.length) {
-        newErrors.owners = 'Owner addresses must be unique'
+        newErrors.owners = "Owner addresses must be unique";
       }
     }
 
     // Check threshold
     if (formData.threshold < 1) {
-      newErrors.threshold = 'Threshold must be greater than 0'
+      newErrors.threshold = "Threshold must be greater than 0";
     } else if (formData.threshold > validOwners.length) {
-      newErrors.threshold = 'Threshold cannot be greater than number of owners'
+      newErrors.threshold = "Threshold cannot be greater than number of owners";
     }
 
     // Check fallbackHandler (if specified)
-    if (formData.fallbackHandler && formData.fallbackHandler.trim() && 
-        !formData.fallbackHandler.match(/^0x[a-fA-F0-9]{40}$/)) {
-      newErrors.fallbackHandler = 'Invalid fallback handler address format'
+    if (
+      formData.fallbackHandler &&
+      formData.fallbackHandler.trim() &&
+      !formData.fallbackHandler.match(/^0x[a-fA-F0-9]{40}$/)
+    ) {
+      newErrors.fallbackHandler = "Invalid fallback handler address format";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   // Handle form submission for creation
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!validateForm()) {
-      return
+      return;
     }
 
     const finalFormData = createSafeCreationForm(
-      formData.owners.filter(owner => owner.trim()),
+      formData.owners.filter((owner) => owner.trim()),
       formData.threshold,
       {
         safeVersion: formData.safeVersion || DEFAULT_SAFE_VERSION,
-        fallbackHandler: formData.fallbackHandler?.trim() || undefined
+        fallbackHandler: formData.fallbackHandler?.trim() || undefined,
       }
-    )
+    );
 
-    onCreate(finalFormData)
-  }
+    onCreate(finalFormData);
+  };
 
   // Handle address prediction
   const handlePredict = () => {
     if (!validateForm() || !onPredict) {
-      return
+      return;
     }
 
     const finalFormData = createSafeCreationForm(
-      formData.owners.filter(owner => owner.trim()),
+      formData.owners.filter((owner) => owner.trim()),
       formData.threshold,
       {
         safeVersion: formData.safeVersion || DEFAULT_SAFE_VERSION,
-        fallbackHandler: formData.fallbackHandler?.trim() || undefined
+        fallbackHandler: formData.fallbackHandler?.trim() || undefined,
       }
-    )
+    );
 
-    onPredict(finalFormData)
-  }
+    onPredict(finalFormData);
+  };
 
   // Update form field
   const updateField = (field: keyof SafeCreationFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error for this field
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
-  }
+  };
 
   // Add owner
   const addOwner = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      owners: [...prev.owners, '']
-    }))
-  }
+      owners: [...prev.owners, ""],
+    }));
+  };
 
   // Remove owner
   const removeOwner = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      owners: prev.owners.filter((_, i) => i !== index)
-    }))
-  }
+      owners: prev.owners.filter((_, i) => i !== index),
+    }));
+  };
 
   // Update owner
   const updateOwner = (index: number, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      owners: prev.owners.map((owner, i) => i === index ? value : owner)
-    }))
-  }
+      owners: prev.owners.map((owner, i) => (i === index ? value : owner)),
+    }));
+  };
 
   // Add current user as owner
   const addCurrentUser = () => {
     if (userAddress && !formData.owners.includes(userAddress)) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        owners: [...prev.owners.filter(o => o.trim()), userAddress]
-      }))
+        owners: [...prev.owners.filter((o) => o.trim()), userAddress],
+      }));
     }
-  }
+  };
 
   return (
     <div className={`p-6 bg-white rounded-lg shadow ${className}`}>
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          🚀 {title}
-        </h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{title}</h2>
         <p className="text-gray-600 text-sm">
-          Create a new Safe multisig wallet. Specify owners and minimum number of signatures required to execute transactions.
+          Create a new Safe multisig wallet. Specify owners and minimum number
+          of signatures required to execute transactions.
         </p>
       </div>
 
@@ -190,7 +197,7 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
               </button>
             </div>
           </div>
-          
+
           <div className="space-y-2">
             {formData.owners.map((owner, index) => (
               <div key={index} className="flex gap-2">
@@ -200,7 +207,7 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
                   onChange={(e) => updateOwner(index, e.target.value)}
                   placeholder={`Owner address ${index + 1}`}
                   className={`flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.owners ? 'border-red-300' : 'border-gray-300'
+                    errors.owners ? "border-red-300" : "border-gray-300"
                   }`}
                 />
                 {owner === userAddress && (
@@ -224,11 +231,12 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
           {errors.owners && (
             <p className="mt-1 text-sm text-red-600">{errors.owners}</p>
           )}
-          
+
           <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-yellow-800 text-sm">
-              💡 <strong>Important:</strong> Add all addresses that should have access to Safe management. 
-              These addresses cannot be changed without consensus of all current owners.
+              <strong>Important:</strong> Add all addresses that should have
+              access to Safe management. These addresses cannot be changed
+              without consensus of all current owners.
             </p>
           </div>
         </div>
@@ -242,15 +250,17 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
             <input
               type="number"
               min="1"
-              max={formData.owners.filter(o => o.trim()).length || 1}
+              max={formData.owners.filter((o) => o.trim()).length || 1}
               value={formData.threshold}
-              onChange={(e) => updateField('threshold', parseInt(e.target.value) || 1)}
+              onChange={(e) =>
+                updateField("threshold", parseInt(e.target.value) || 1)
+              }
               className={`w-32 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.threshold ? 'border-red-300' : 'border-gray-300'
+                errors.threshold ? "border-red-300" : "border-gray-300"
               }`}
             />
             <span className="text-sm text-gray-600">
-              of {formData.owners.filter(o => o.trim()).length} owners
+              of {formData.owners.filter((o) => o.trim()).length} owners
             </span>
           </div>
           {errors.threshold && (
@@ -266,19 +276,31 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
               <strong>Threshold selection recommendations:</strong>
             </p>
             <ul className="text-blue-700 text-sm space-y-1">
-              <li>• <strong>1 of 1:</strong> Basic security, convenient for personal use</li>
-              <li>• <strong>2 of 3:</strong> Good security with backup</li>
-              <li>• <strong>3 of 5:</strong> High security for teams or organizations</li>
-              <li>• <strong>More than 50%:</strong> Protection against minority owner compromise</li>
+              <li>
+                • <strong>1 of 1:</strong> Basic security, convenient for
+                personal use
+              </li>
+              <li>
+                • <strong>2 of 3:</strong> Good security with backup
+              </li>
+              <li>
+                • <strong>3 of 5:</strong> High security for teams or
+                organizations
+              </li>
+              <li>
+                • <strong>More than 50%:</strong> Protection against minority
+                owner compromise
+              </li>
             </ul>
           </div>
         </div>
 
-
         {/* Predicted address */}
         {predictedAddress && (
           <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <h4 className="font-medium text-green-900 mb-2">🔮 Predicted Safe Address:</h4>
+            <h4 className="font-medium text-green-900 mb-2">
+              🔮 Predicted Safe Address:
+            </h4>
             <div className="flex items-center gap-2">
               <code className="flex-1 p-2 bg-white border rounded text-sm font-mono">
                 {predictedAddress}
@@ -289,7 +311,7 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
                 className="px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
                 title="Copy address"
               >
-                📋
+                List
               </button>
             </div>
             <p className="mt-2 text-sm text-green-800">
@@ -313,11 +335,11 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
                   Predicting...
                 </div>
               ) : (
-                '🔮 Predict Address'
+                "🔮 Predict Address"
               )}
             </button>
           )}
-          
+
           <button
             type="submit"
             disabled={loading || predicting}
@@ -329,10 +351,10 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
                 Creating...
               </div>
             ) : (
-              '🚀 Create Safe'
+              "Create Safe"
             )}
           </button>
-          
+
           {onCancel && (
             <button
               type="button"
@@ -350,14 +372,16 @@ const SafeCreationForm: React.FC<SafeCreationFormProps> = ({
       <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
         <h4 className="font-medium text-orange-900 mb-2">⛽ Fee Information</h4>
         <ul className="text-sm text-orange-800 space-y-1">
-          <li>• Creating Safe will require gas payment for contract deployment</li>
+          <li>
+            • Creating Safe will require gas payment for contract deployment
+          </li>
           <li>• Cost depends on network congestion and gas price</li>
           <li>• Make sure you have enough ETH balance to pay fees</li>
           <li>• Safe address cannot be changed after creation</li>
         </ul>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SafeCreationForm
+export default SafeCreationForm;
