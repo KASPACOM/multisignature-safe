@@ -2,56 +2,60 @@
  * Component for inputting contract function parameters
  */
 
-import React, { useState, useEffect } from 'react'
-import { ParsedFunction, FunctionFormData, ABIInput } from '../lib/contract-types'
+import React, { useState, useEffect } from "react";
+import {
+  ParsedFunction,
+  FunctionFormData,
+  ABIInput,
+} from "../lib/contract-types";
 
 interface ParameterFormProps {
-  selectedFunction: ParsedFunction | null
-  onFormChange: (data: FunctionFormData) => void
-  formData: FunctionFormData
+  selectedFunction: ParsedFunction | null;
+  onFormChange: (data: FunctionFormData) => void;
+  formData: FunctionFormData;
 }
 
 export const ParameterForm: React.FC<ParameterFormProps> = ({
   selectedFunction,
   onFormChange,
-  formData
+  formData,
 }) => {
   useEffect(() => {
     if (selectedFunction) {
       // Initialize empty values for new function
-      const initialParameters: { [key: string]: any } = {}
+      const initialParameters: { [key: string]: any } = {};
       selectedFunction.inputs.forEach((input, index) => {
-        const fieldName = input.name || `param${index}`
-        initialParameters[fieldName] = ''
-      })
-      
+        const fieldName = input.name || `param${index}`;
+        initialParameters[fieldName] = "";
+      });
+
       onFormChange({
         parameters: initialParameters,
-        ethValue: formData.ethValue || '0'
-      })
+        ethValue: formData.ethValue || "0",
+      });
     }
-  }, [selectedFunction])
+  }, [selectedFunction]);
 
   const handleParameterChange = (paramName: string, value: string) => {
     onFormChange({
       ...formData,
       parameters: {
         ...formData.parameters,
-        [paramName]: value
-      }
-    })
-  }
+        [paramName]: value,
+      },
+    });
+  };
 
   const handleEthValueChange = (value: string) => {
     onFormChange({
       ...formData,
-      ethValue: value
-    })
-  }
+      ethValue: value,
+    });
+  };
 
   const renderInput = (input: ABIInput, index: number) => {
-    const fieldName = input.name || `param${index}`
-    const value = formData.parameters[fieldName] || ''
+    const fieldName = input.name || `param${index}`;
+    const value = formData.parameters[fieldName] || "";
 
     return (
       <div key={index} className="space-y-2">
@@ -69,21 +73,23 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
           placeholder={`Enter ${input.type}`}
         />
       </div>
-    )
-  }
+    );
+  };
 
   if (!selectedFunction) {
     return (
       <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center text-gray-500">
         First select a function
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-2 mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">📝 Function Parameters</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Function Parameters
+        </h3>
         <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
           {selectedFunction.name}
         </span>
@@ -117,5 +123,5 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
         </div>
       )}
     </div>
-  )
-}
+  );
+};
