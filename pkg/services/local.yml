@@ -1,0 +1,119 @@
+volumes:
+  nginx-shared:
+
+services:
+  nginx:
+    image: nginx:alpine
+    hostname: nginx
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx-shared:/nginx
+    depends_on:
+      web:
+        condition: service_healthy
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 5s
+      retries: 3
+
+  rabbitmq:
+    image: rabbitmq:alpine
+    ports:
+      - "5672:5672"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      timeout: 5s
+      retries: 3
+      
+  web:
+    image: safeglobal/safe-transaction-service:latest
+    env_file:
+      - .env.sts
+    environment:
+      RUN_MIGRATIONS: 1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    working_dir: /app
+    ports:
+      - "8888:8888"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - nginx-shared:/nginx
+      - ./migration/data-migrations/0097_load_initial_safe_data.py:/app/safe_transaction_service/history/migrations/0097_load_initial_safe_data.py:ro
+      - ./migration/fixtures:/app/migration/fixtures:ro
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "showmigrations", "--plan"]
+      interval: 10s
+      timeout: 5s
+      retries: 5  
+      start_period: 60s
+    command: >
+      bash -c "
+        python manage.py migrate --noinput &&
+        python manage.py setup_service &&
+        docker/web/run_web.sh
+      "
+
+  indexer-worker: &worker
+    image: safeglobal/safe-transaction-service:latest
+    env_file:
+      - .env.sts
+    environment:
+      RUN_MIGRATIONS: 0
+      WORKER_QUEUES: "default,indexing,processing"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      web:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: docker/web/celery/worker/run.sh
+
+  contracts-tokens-worker:
+    <<: *worker
+    environment:
+      RUN_MIGRATIONS: 0
+      WORKER_QUEUES: "contracts,tokens"
+
+  scheduler:
+    <<: *worker
+    environment:
+      RUN_MIGRATIONS: 0
+      WORKER_QUEUES: "default,indexing,processing"
+    command: docker/web/celery/scheduler/run.sh
+
+  flower:
+    <<: *worker
+    environment:
+      RUN_MIGRATIONS: 0
+      WORKER_QUEUES: "default,indexing,processing"
+    command: docker/web/celery/flower/run.sh
+    ports:
+      - "5555:5555"
+    profiles:
+      - debug

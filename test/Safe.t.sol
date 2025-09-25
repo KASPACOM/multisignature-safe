@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.20;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {SafeL2} from "safe-smart-account/SafeL2.sol";
 import {Safe} from "safe-smart-account/Safe.sol";
 import {SafeProxyFactory} from "safe-smart-account/proxies/SafeProxyFactory.sol";

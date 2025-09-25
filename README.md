@@ -1,111 +1,196 @@
-# Safe Smart Account - Foundry Deployment
+# Safe Transaction Service - Deployment
 
-Альтернативный способ деплоя контрактов Safe Smart Account с использованием **Foundry** вместо Hardhat.
+Tool for deploying Safe Transaction Service with custom contracts support.
 
-## ✅ Преимущества Foundry
+## What is this
 
-- **Автоматический linking библиотек** - `MarshalLib` корректно линкуется с `ExtensibleFallbackHandler`
-- **Быстрая компиляция** - Rust-based компилятор намного быстрее
-- **Простые Solidity скрипты** - деплой на чистом Solidity без JavaScript
-- **Встроенная симуляция** - проверка деплоя без трат газа
+Complete development environment for Safe Protocol:
 
-## 🚀 Быстрый старт
+- Safe Transaction Service (transactions API)
+- Foundry contracts (Safe deployment)
+- Next.js application (testing interface)
+- Docker-compose environment
 
-### 1. Подготовка окружения
+## Structure
 
-```bash
-# Убедиться что Foundry установлен
-forge --version
-
-# Клонировать проект (если нужно)
-cd /Users/pavel/Desktop/work/KaspaCom/safe-forge-deploy
+```
+safe-forge-deploy/
+├── pkg/
+│   ├── services/              # Docker configuration
+│   │   ├── local.yml         # Docker compose file
+│   │   ├── .env.sts          # Environment variables
+│   │   ├── nginx/            # Nginx configuration
+│   │   └── migration/        # Django fixtures and migrations
+│   └── example/              # Next.js application
+│       ├── src/              # Testing interface
+│       └── package.json
+├── lib/                      # Foundry libraries
+│   ├── safe-smart-account/   # Safe contracts
+│   └── openzeppelin-contracts/
+├── script/                   # Foundry scripts
+│   └── DeploySafe.s.sol      # Contract deployment
+└── test/                     # Foundry tests
 ```
 
-### 2. Настройка переменных
+## Local Usage
 
 ```bash
-# Скопировать и настроить .env файл
-cp env-example .env
+# 0. Start forge anvil
+anvil --host 0.0.0.0
 
-# Добавить свой приватный ключ
-echo "PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE" > .env
+# 1. Start services
+cd pkg/services && docker-compose -f local.yml up -d
+
+# 2. Start frontend
+cd pkg/example && npm install && npm run dev
+
+# 3. Deploy contracts (optional)
+forge script script/DeploySafe.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
 ```
 
-### 3. Компиляция
+## Services
+
+- **API**: http://localhost:8000 - Safe Transaction Service
+- **Admin**: http://localhost:8000/admin - Django admin (admin/admin123)
+- **Frontend**: http://localhost:3000 - Test application
+- **Flower**: http://localhost:5555 - Celery monitoring
+
+## Production Launch
+
+### Deployment
+
+Use `prod.yml` for production deployment:
 
 ```bash
-forge build
+# 1. Copy environment variables template
+cp pkg/services/env.example.prod .env
+
+# 2. Edit .env with production values
+# 3. Deploy using prod.yml
+cd pkg/services && docker-compose -f prod.yml up -d
 ```
 
-### 4. Симуляция деплоя
+### Required Environment Variables
+
+Configure these secrets in your `.env` file:
+
+#### **DJANGO_SECRET_KEY** (Required)
+
+Strong secret key for Django cryptographic operations (sessions, CSRF, etc.)
 
 ```bash
-# Тестовый запуск (без реального деплоя)
-forge script script/DeploySafe.s.sol
+DJANGO_SECRET_KEY=your-very-strong-random-key-at-least-50-chars
 ```
 
-### 5. Реальный деплой
+#### **DJANGO_ALLOWED_HOSTS** (Required)
+
+Comma-separated list of allowed hostnames for Django security
 
 ```bash
-# Деплой на локальную сеть (Anvil/Hardhat)
-forge script script/DeploySafe.s.sol --rpc-url http://localhost:8545 --broadcast
-
-# Деплой на тестовую сеть
-forge script script/DeploySafe.s.sol --rpc-url $RPC_URL --broadcast --verify
+DJANGO_ALLOWED_HOSTS=yourdomain.com,api.yourdomain.com
 ```
 
-## 📋 Деплоеные контракты
+#### **CSRF_TRUSTED_ORIGINS** (Required)
 
-Скрипт деплоит все основные контракты Safe в правильном порядке:
+Trusted origins for CSRF protection (must include https://)
 
-### Библиотеки:
-- `CreateCall` - Создание новых контрактов через Safe
-- `MultiSend` - Батчинг транзакций  
-- `MultiSendCallOnly` - Батчинг только call'ов
-- `SignMessageLib` - Подпись сообщений
-- `SafeToL2Setup` - Миграция на L2
+```bash
+CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://api.yourdomain.com
+```
 
-### Основные контракты:
-- `Safe` - Основной контракт мультисиг кошелька
-- `SafeL2` - L2-оптимизированная версия
-- `SafeProxyFactory` - Фабрика для создания Safe прокси
+#### **POSTGRES_USER** (Required)
 
-### Хендлеры:
-- `TokenCallbackHandler` - Обработка токенов
-- `CompatibilityFallbackHandler` - Обратная совместимость
-- `ExtensibleFallbackHandler` - Расширяемый хендлер (**работает корректно!**)
+PostgreSQL database username
 
-### Дополнительно:
-- `SimulateTxAccessor` - Симуляция транзакций
-- `SafeMigration` - Миграция версий Safe
+```bash
+POSTGRES_USER=postgres
+```
 
-## 🔧 Конфигурация
+#### **POSTGRES_PASSWORD** (Required)
 
-**foundry.toml** настроен на:
-- Solidity 0.7.6 (как в оригинальном проекте)
-- Оптимизация с 200 runs
-- EVM версия London
-- Автоматический linking библиотек
+Strong password for PostgreSQL database
 
-## 📝 Примечания
+```bash
+POSTGRES_PASSWORD=your-strong-db-password
+```
 
-- **MarshalLib**: Автоматически линкуется с `ExtensibleFallbackHandler` (решена проблема из Hardhat)
-- **Приватный ключ**: Должен содержать префикс `0x`
-- **Gas cost**: ~9.9M gas для полного деплоя всех контрактов
-- **Безопасность**: Не используйте тестовые ключи в продакшн
+#### **POSTGRES_DB** (Required)
 
-## ⚡ Сравнение с Hardhat
+PostgreSQL database name
 
-| Аспект | Foundry ✅ | Hardhat ❌ |
-|--------|-----------|-----------|
-| Компиляция | ~2s | ~30s |
-| Library linking | Автоматически | Ошибки |
-| ExtensibleFallbackHandler | Работает | Не деплоится |
-| Симуляция | Встроенная | Требует настройки |
-| Скрипты | Solidity | TypeScript |
+```bash
+POSTGRES_DB=safe_transaction_service
+```
 
----
+#### **ETHEREUM_NODE_URL** (Required)
 
-**Готово к использованию!** 🎉
+HTTP/HTTPS URL to Ethereum-compatible RPC node for blockchain access
 
-Foundry успешно решил проблемы с linking библиотек, которые возникали в Hardhat.
+```bash
+ETHEREUM_NODE_URL=https://your-ethereum-node-url
+```
+
+### Django Administration
+
+Access Django admin interface for configuration:
+
+- **URL**: `https://yourdomain.com/admin/`
+- **Documentation**: [Django Admin Documentation](https://docs.djangoproject.com/en/stable/ref/contrib/admin/)
+- **Safe Transaction Service**: [Official Repository](https://github.com/safe-global/safe-transaction-service)
+
+Create superuser after deployment:
+
+```bash
+docker compose -f pkg/services/prod.yml exec -it web python manage.py createsuperuser
+```
+
+### Required Endpoints
+
+For frontend integration, expose these endpoints:
+
+- **API Base**: `/api/` - Main Safe Transaction Service API
+- **Admin Panel**: `/admin/` - Django administration interface
+- **Health Check**: `/check/` - Service health status
+
+### Contract Configuration
+
+#### Master Copies (One-time setup)
+
+Add Safe contract addresses in Django Admin → **Safe Master Copies**:
+
+- **SafeL2 singleton**: `0x5a2b478CBd6Ad0ac28A3eBAF7D9A782a4a50AdEE`
+
+#### Proxy Factories (One-time setup)
+
+Add factory addresses in Django Admin → **Safe Proxy Factories**:
+
+- **SafeProxyFactory**: `0x04Ac3D0eB50762b12715ED745a5cbe20679fB8d8`
+
+#### Contract ABIs for Transaction Decoding
+
+To enable transaction data decoding and convenient function selection when creating proposals, add contract ABIs in Django Admin → **Contract ABIs**:
+
+**Purpose**:
+
+- Decode transaction data for better UX
+- Enable function selection in Safe interface
+- Display human-readable transaction information
+
+**How to add**:
+
+1. Go to Django Admin → **Contract ABIs**
+2. Add contract address and corresponding ABI (JSON format)
+3. Service will automatically decode transactions to/from these contracts
+
+**Auto-detection**:
+
+- Verified contracts on block explorers are automatically detected
+- Manual addition required for unverified or custom contracts
+- Use `/api/v1/data-decoder/` endpoint to test decoding
+
+**Examples of contracts to add**:
+
+- DeFi protocols (Uniswap, Aave, etc.)
+- DAO governance contracts
+- Custom application contracts
+- Token contracts with custom functions

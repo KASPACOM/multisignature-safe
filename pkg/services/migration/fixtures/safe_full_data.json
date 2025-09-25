@@ -1,0 +1,3459 @@
+[
+{
+  "model": "auth.permission",
+  "pk": 1,
+  "fields": {
+    "name": "Can add log entry",
+    "content_type": 1,
+    "codename": "add_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 2,
+  "fields": {
+    "name": "Can change log entry",
+    "content_type": 1,
+    "codename": "change_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 3,
+  "fields": {
+    "name": "Can delete log entry",
+    "content_type": 1,
+    "codename": "delete_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 4,
+  "fields": {
+    "name": "Can view log entry",
+    "content_type": 1,
+    "codename": "view_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 5,
+  "fields": {
+    "name": "Can add permission",
+    "content_type": 2,
+    "codename": "add_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 6,
+  "fields": {
+    "name": "Can change permission",
+    "content_type": 2,
+    "codename": "change_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 7,
+  "fields": {
+    "name": "Can delete permission",
+    "content_type": 2,
+    "codename": "delete_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 8,
+  "fields": {
+    "name": "Can view permission",
+    "content_type": 2,
+    "codename": "view_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 9,
+  "fields": {
+    "name": "Can add group",
+    "content_type": 3,
+    "codename": "add_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 10,
+  "fields": {
+    "name": "Can change group",
+    "content_type": 3,
+    "codename": "change_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 11,
+  "fields": {
+    "name": "Can delete group",
+    "content_type": 3,
+    "codename": "delete_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 12,
+  "fields": {
+    "name": "Can view group",
+    "content_type": 3,
+    "codename": "view_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 13,
+  "fields": {
+    "name": "Can add user",
+    "content_type": 4,
+    "codename": "add_user"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 14,
+  "fields": {
+    "name": "Can change user",
+    "content_type": 4,
+    "codename": "change_user"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 15,
+  "fields": {
+    "name": "Can delete user",
+    "content_type": 4,
+    "codename": "delete_user"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 16,
+  "fields": {
+    "name": "Can view user",
+    "content_type": 4,
+    "codename": "view_user"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 17,
+  "fields": {
+    "name": "Can add content type",
+    "content_type": 5,
+    "codename": "add_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 18,
+  "fields": {
+    "name": "Can change content type",
+    "content_type": 5,
+    "codename": "change_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 19,
+  "fields": {
+    "name": "Can delete content type",
+    "content_type": 5,
+    "codename": "delete_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 20,
+  "fields": {
+    "name": "Can view content type",
+    "content_type": 5,
+    "codename": "view_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 21,
+  "fields": {
+    "name": "Can add session",
+    "content_type": 6,
+    "codename": "add_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 22,
+  "fields": {
+    "name": "Can change session",
+    "content_type": 6,
+    "codename": "change_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 23,
+  "fields": {
+    "name": "Can delete session",
+    "content_type": 6,
+    "codename": "delete_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 24,
+  "fields": {
+    "name": "Can view session",
+    "content_type": 6,
+    "codename": "view_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 25,
+  "fields": {
+    "name": "Can add site",
+    "content_type": 7,
+    "codename": "add_site"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 26,
+  "fields": {
+    "name": "Can change site",
+    "content_type": 7,
+    "codename": "change_site"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 27,
+  "fields": {
+    "name": "Can delete site",
+    "content_type": 7,
+    "codename": "delete_site"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 28,
+  "fields": {
+    "name": "Can view site",
+    "content_type": 7,
+    "codename": "view_site"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 29,
+  "fields": {
+    "name": "Can add Token",
+    "content_type": 8,
+    "codename": "add_token"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 30,
+  "fields": {
+    "name": "Can change Token",
+    "content_type": 8,
+    "codename": "change_token"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 31,
+  "fields": {
+    "name": "Can delete Token",
+    "content_type": 8,
+    "codename": "delete_token"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 32,
+  "fields": {
+    "name": "Can view Token",
+    "content_type": 8,
+    "codename": "view_token"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 33,
+  "fields": {
+    "name": "Can add Token",
+    "content_type": 9,
+    "codename": "add_tokenproxy"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 34,
+  "fields": {
+    "name": "Can change Token",
+    "content_type": 9,
+    "codename": "change_tokenproxy"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 35,
+  "fields": {
+    "name": "Can delete Token",
+    "content_type": 9,
+    "codename": "delete_tokenproxy"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 36,
+  "fields": {
+    "name": "Can view Token",
+    "content_type": 9,
+    "codename": "view_tokenproxy"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 37,
+  "fields": {
+    "name": "Can add safe operation",
+    "content_type": 10,
+    "codename": "add_safeoperation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 38,
+  "fields": {
+    "name": "Can change safe operation",
+    "content_type": 10,
+    "codename": "change_safeoperation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 39,
+  "fields": {
+    "name": "Can delete safe operation",
+    "content_type": 10,
+    "codename": "delete_safeoperation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 40,
+  "fields": {
+    "name": "Can view safe operation",
+    "content_type": 10,
+    "codename": "view_safeoperation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 41,
+  "fields": {
+    "name": "Can add safe operation confirmation",
+    "content_type": 11,
+    "codename": "add_safeoperationconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 42,
+  "fields": {
+    "name": "Can change safe operation confirmation",
+    "content_type": 11,
+    "codename": "change_safeoperationconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 43,
+  "fields": {
+    "name": "Can delete safe operation confirmation",
+    "content_type": 11,
+    "codename": "delete_safeoperationconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 44,
+  "fields": {
+    "name": "Can view safe operation confirmation",
+    "content_type": 11,
+    "codename": "view_safeoperationconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 45,
+  "fields": {
+    "name": "Can add user operation",
+    "content_type": 12,
+    "codename": "add_useroperation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 46,
+  "fields": {
+    "name": "Can change user operation",
+    "content_type": 12,
+    "codename": "change_useroperation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 47,
+  "fields": {
+    "name": "Can delete user operation",
+    "content_type": 12,
+    "codename": "delete_useroperation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 48,
+  "fields": {
+    "name": "Can view user operation",
+    "content_type": 12,
+    "codename": "view_useroperation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 49,
+  "fields": {
+    "name": "Can add user operation receipt",
+    "content_type": 13,
+    "codename": "add_useroperationreceipt"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 50,
+  "fields": {
+    "name": "Can change user operation receipt",
+    "content_type": 13,
+    "codename": "change_useroperationreceipt"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 51,
+  "fields": {
+    "name": "Can delete user operation receipt",
+    "content_type": 13,
+    "codename": "delete_useroperationreceipt"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 52,
+  "fields": {
+    "name": "Can view user operation receipt",
+    "content_type": 13,
+    "codename": "view_useroperationreceipt"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 53,
+  "fields": {
+    "name": "Can add contract abi",
+    "content_type": 14,
+    "codename": "add_contractabi"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 54,
+  "fields": {
+    "name": "Can change contract abi",
+    "content_type": 14,
+    "codename": "change_contractabi"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 55,
+  "fields": {
+    "name": "Can delete contract abi",
+    "content_type": 14,
+    "codename": "delete_contractabi"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 56,
+  "fields": {
+    "name": "Can view contract abi",
+    "content_type": 14,
+    "codename": "view_contractabi"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 57,
+  "fields": {
+    "name": "Can add contract",
+    "content_type": 15,
+    "codename": "add_contract"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 58,
+  "fields": {
+    "name": "Can change contract",
+    "content_type": 15,
+    "codename": "change_contract"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 59,
+  "fields": {
+    "name": "Can delete contract",
+    "content_type": 15,
+    "codename": "delete_contract"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 60,
+  "fields": {
+    "name": "Can view contract",
+    "content_type": 15,
+    "codename": "view_contract"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 61,
+  "fields": {
+    "name": "Can add multisig transaction",
+    "content_type": 16,
+    "codename": "add_multisigtransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 62,
+  "fields": {
+    "name": "Can change multisig transaction",
+    "content_type": 16,
+    "codename": "change_multisigtransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 63,
+  "fields": {
+    "name": "Can delete multisig transaction",
+    "content_type": 16,
+    "codename": "delete_multisigtransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 64,
+  "fields": {
+    "name": "Can view multisig transaction",
+    "content_type": 16,
+    "codename": "view_multisigtransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 65,
+  "fields": {
+    "name": "Can create trusted transactions",
+    "content_type": 16,
+    "codename": "create_trusted"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 66,
+  "fields": {
+    "name": "Can add multisig confirmation",
+    "content_type": 17,
+    "codename": "add_multisigconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 67,
+  "fields": {
+    "name": "Can change multisig confirmation",
+    "content_type": 17,
+    "codename": "change_multisigconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 68,
+  "fields": {
+    "name": "Can delete multisig confirmation",
+    "content_type": 17,
+    "codename": "delete_multisigconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 69,
+  "fields": {
+    "name": "Can view multisig confirmation",
+    "content_type": 17,
+    "codename": "view_multisigconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 70,
+  "fields": {
+    "name": "Can add ethereum block",
+    "content_type": 18,
+    "codename": "add_ethereumblock"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 71,
+  "fields": {
+    "name": "Can change ethereum block",
+    "content_type": 18,
+    "codename": "change_ethereumblock"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 72,
+  "fields": {
+    "name": "Can delete ethereum block",
+    "content_type": 18,
+    "codename": "delete_ethereumblock"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 73,
+  "fields": {
+    "name": "Can view ethereum block",
+    "content_type": 18,
+    "codename": "view_ethereumblock"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 74,
+  "fields": {
+    "name": "Can add ethereum tx",
+    "content_type": 19,
+    "codename": "add_ethereumtx"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 75,
+  "fields": {
+    "name": "Can change ethereum tx",
+    "content_type": 19,
+    "codename": "change_ethereumtx"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 76,
+  "fields": {
+    "name": "Can delete ethereum tx",
+    "content_type": 19,
+    "codename": "delete_ethereumtx"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 77,
+  "fields": {
+    "name": "Can view ethereum tx",
+    "content_type": 19,
+    "codename": "view_ethereumtx"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 78,
+  "fields": {
+    "name": "Can add internal tx",
+    "content_type": 20,
+    "codename": "add_internaltx"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 79,
+  "fields": {
+    "name": "Can change internal tx",
+    "content_type": 20,
+    "codename": "change_internaltx"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 80,
+  "fields": {
+    "name": "Can delete internal tx",
+    "content_type": 20,
+    "codename": "delete_internaltx"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 81,
+  "fields": {
+    "name": "Can view internal tx",
+    "content_type": 20,
+    "codename": "view_internaltx"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 82,
+  "fields": {
+    "name": "Can add proxy factory",
+    "content_type": 21,
+    "codename": "add_proxyfactory"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 83,
+  "fields": {
+    "name": "Can change proxy factory",
+    "content_type": 21,
+    "codename": "change_proxyfactory"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 84,
+  "fields": {
+    "name": "Can delete proxy factory",
+    "content_type": 21,
+    "codename": "delete_proxyfactory"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 85,
+  "fields": {
+    "name": "Can view proxy factory",
+    "content_type": 21,
+    "codename": "view_proxyfactory"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 86,
+  "fields": {
+    "name": "Can add safe master copy",
+    "content_type": 22,
+    "codename": "add_safemastercopy"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 87,
+  "fields": {
+    "name": "Can change safe master copy",
+    "content_type": 22,
+    "codename": "change_safemastercopy"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 88,
+  "fields": {
+    "name": "Can delete safe master copy",
+    "content_type": 22,
+    "codename": "delete_safemastercopy"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 89,
+  "fields": {
+    "name": "Can view safe master copy",
+    "content_type": 22,
+    "codename": "view_safemastercopy"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 90,
+  "fields": {
+    "name": "Can add internal tx decoded",
+    "content_type": 23,
+    "codename": "add_internaltxdecoded"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 91,
+  "fields": {
+    "name": "Can change internal tx decoded",
+    "content_type": 23,
+    "codename": "change_internaltxdecoded"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 92,
+  "fields": {
+    "name": "Can delete internal tx decoded",
+    "content_type": 23,
+    "codename": "delete_internaltxdecoded"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 93,
+  "fields": {
+    "name": "Can view internal tx decoded",
+    "content_type": 23,
+    "codename": "view_internaltxdecoded"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 94,
+  "fields": {
+    "name": "Can add safe contract",
+    "content_type": 24,
+    "codename": "add_safecontract"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 95,
+  "fields": {
+    "name": "Can change safe contract",
+    "content_type": 24,
+    "codename": "change_safecontract"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 96,
+  "fields": {
+    "name": "Can delete safe contract",
+    "content_type": 24,
+    "codename": "delete_safecontract"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 97,
+  "fields": {
+    "name": "Can view safe contract",
+    "content_type": 24,
+    "codename": "view_safecontract"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 98,
+  "fields": {
+    "name": "Can add safe status",
+    "content_type": 25,
+    "codename": "add_safestatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 99,
+  "fields": {
+    "name": "Can change safe status",
+    "content_type": 25,
+    "codename": "change_safestatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 100,
+  "fields": {
+    "name": "Can delete safe status",
+    "content_type": 25,
+    "codename": "delete_safestatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 101,
+  "fields": {
+    "name": "Can view safe status",
+    "content_type": 25,
+    "codename": "view_safestatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 102,
+  "fields": {
+    "name": "Can add module transaction",
+    "content_type": 26,
+    "codename": "add_moduletransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 103,
+  "fields": {
+    "name": "Can change module transaction",
+    "content_type": 26,
+    "codename": "change_moduletransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 104,
+  "fields": {
+    "name": "Can delete module transaction",
+    "content_type": 26,
+    "codename": "delete_moduletransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 105,
+  "fields": {
+    "name": "Can view module transaction",
+    "content_type": 26,
+    "codename": "view_moduletransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 106,
+  "fields": {
+    "name": "Can add safe contract delegate",
+    "content_type": 27,
+    "codename": "add_safecontractdelegate"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 107,
+  "fields": {
+    "name": "Can change safe contract delegate",
+    "content_type": 27,
+    "codename": "change_safecontractdelegate"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 108,
+  "fields": {
+    "name": "Can delete safe contract delegate",
+    "content_type": 27,
+    "codename": "delete_safecontractdelegate"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 109,
+  "fields": {
+    "name": "Can view safe contract delegate",
+    "content_type": 27,
+    "codename": "view_safecontractdelegate"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 110,
+  "fields": {
+    "name": "Can add ERC20 Transfer",
+    "content_type": 28,
+    "codename": "add_erc20transfer"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 111,
+  "fields": {
+    "name": "Can change ERC20 Transfer",
+    "content_type": 28,
+    "codename": "change_erc20transfer"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 112,
+  "fields": {
+    "name": "Can delete ERC20 Transfer",
+    "content_type": 28,
+    "codename": "delete_erc20transfer"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 113,
+  "fields": {
+    "name": "Can view ERC20 Transfer",
+    "content_type": 28,
+    "codename": "view_erc20transfer"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 114,
+  "fields": {
+    "name": "Can add ERC721 Transfer",
+    "content_type": 29,
+    "codename": "add_erc721transfer"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 115,
+  "fields": {
+    "name": "Can change ERC721 Transfer",
+    "content_type": 29,
+    "codename": "change_erc721transfer"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 116,
+  "fields": {
+    "name": "Can delete ERC721 Transfer",
+    "content_type": 29,
+    "codename": "delete_erc721transfer"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 117,
+  "fields": {
+    "name": "Can view ERC721 Transfer",
+    "content_type": 29,
+    "codename": "view_erc721transfer"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 118,
+  "fields": {
+    "name": "Can add safe last status",
+    "content_type": 30,
+    "codename": "add_safelaststatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 119,
+  "fields": {
+    "name": "Can change safe last status",
+    "content_type": 30,
+    "codename": "change_safelaststatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 120,
+  "fields": {
+    "name": "Can delete safe last status",
+    "content_type": 30,
+    "codename": "delete_safelaststatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 121,
+  "fields": {
+    "name": "Can view safe last status",
+    "content_type": 30,
+    "codename": "view_safelaststatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 122,
+  "fields": {
+    "name": "Can add indexing status",
+    "content_type": 31,
+    "codename": "add_indexingstatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 123,
+  "fields": {
+    "name": "Can change indexing status",
+    "content_type": 31,
+    "codename": "change_indexingstatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 124,
+  "fields": {
+    "name": "Can delete indexing status",
+    "content_type": 31,
+    "codename": "delete_indexingstatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 125,
+  "fields": {
+    "name": "Can view indexing status",
+    "content_type": 31,
+    "codename": "view_indexingstatus"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 126,
+  "fields": {
+    "name": "Can add chain",
+    "content_type": 32,
+    "codename": "add_chain"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 127,
+  "fields": {
+    "name": "Can change chain",
+    "content_type": 32,
+    "codename": "change_chain"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 128,
+  "fields": {
+    "name": "Can delete chain",
+    "content_type": 32,
+    "codename": "delete_chain"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 129,
+  "fields": {
+    "name": "Can view chain",
+    "content_type": 32,
+    "codename": "view_chain"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 130,
+  "fields": {
+    "name": "Can add safe relevant transaction",
+    "content_type": 33,
+    "codename": "add_saferelevanttransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 131,
+  "fields": {
+    "name": "Can change safe relevant transaction",
+    "content_type": 33,
+    "codename": "change_saferelevanttransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 132,
+  "fields": {
+    "name": "Can delete safe relevant transaction",
+    "content_type": 33,
+    "codename": "delete_saferelevanttransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 133,
+  "fields": {
+    "name": "Can view safe relevant transaction",
+    "content_type": 33,
+    "codename": "view_saferelevanttransaction"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 134,
+  "fields": {
+    "name": "Can add safe message",
+    "content_type": 34,
+    "codename": "add_safemessage"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 135,
+  "fields": {
+    "name": "Can change safe message",
+    "content_type": 34,
+    "codename": "change_safemessage"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 136,
+  "fields": {
+    "name": "Can delete safe message",
+    "content_type": 34,
+    "codename": "delete_safemessage"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 137,
+  "fields": {
+    "name": "Can view safe message",
+    "content_type": 34,
+    "codename": "view_safemessage"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 138,
+  "fields": {
+    "name": "Can add safe message confirmation",
+    "content_type": 35,
+    "codename": "add_safemessageconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 139,
+  "fields": {
+    "name": "Can change safe message confirmation",
+    "content_type": 35,
+    "codename": "change_safemessageconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 140,
+  "fields": {
+    "name": "Can delete safe message confirmation",
+    "content_type": 35,
+    "codename": "delete_safemessageconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 141,
+  "fields": {
+    "name": "Can view safe message confirmation",
+    "content_type": 35,
+    "codename": "view_safemessageconfirmation"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 142,
+  "fields": {
+    "name": "Can add token",
+    "content_type": 36,
+    "codename": "add_token"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 143,
+  "fields": {
+    "name": "Can change token",
+    "content_type": 36,
+    "codename": "change_token"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 144,
+  "fields": {
+    "name": "Can delete token",
+    "content_type": 36,
+    "codename": "delete_token"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 145,
+  "fields": {
+    "name": "Can view token",
+    "content_type": 36,
+    "codename": "view_token"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 146,
+  "fields": {
+    "name": "Can add token list",
+    "content_type": 37,
+    "codename": "add_tokenlist"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 147,
+  "fields": {
+    "name": "Can change token list",
+    "content_type": 37,
+    "codename": "change_tokenlist"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 148,
+  "fields": {
+    "name": "Can delete token list",
+    "content_type": 37,
+    "codename": "delete_tokenlist"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 149,
+  "fields": {
+    "name": "Can view token list",
+    "content_type": 37,
+    "codename": "view_tokenlist"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 150,
+  "fields": {
+    "name": "Can add token not valid",
+    "content_type": 38,
+    "codename": "add_tokennotvalid"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 151,
+  "fields": {
+    "name": "Can change token not valid",
+    "content_type": 38,
+    "codename": "change_tokennotvalid"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 152,
+  "fields": {
+    "name": "Can delete token not valid",
+    "content_type": 38,
+    "codename": "delete_tokennotvalid"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 153,
+  "fields": {
+    "name": "Can view token not valid",
+    "content_type": 38,
+    "codename": "view_tokennotvalid"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 154,
+  "fields": {
+    "name": "Can add crontab",
+    "content_type": 39,
+    "codename": "add_crontabschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 155,
+  "fields": {
+    "name": "Can change crontab",
+    "content_type": 39,
+    "codename": "change_crontabschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 156,
+  "fields": {
+    "name": "Can delete crontab",
+    "content_type": 39,
+    "codename": "delete_crontabschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 157,
+  "fields": {
+    "name": "Can view crontab",
+    "content_type": 39,
+    "codename": "view_crontabschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 158,
+  "fields": {
+    "name": "Can add interval",
+    "content_type": 40,
+    "codename": "add_intervalschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 159,
+  "fields": {
+    "name": "Can change interval",
+    "content_type": 40,
+    "codename": "change_intervalschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 160,
+  "fields": {
+    "name": "Can delete interval",
+    "content_type": 40,
+    "codename": "delete_intervalschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 161,
+  "fields": {
+    "name": "Can view interval",
+    "content_type": 40,
+    "codename": "view_intervalschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 162,
+  "fields": {
+    "name": "Can add periodic task",
+    "content_type": 41,
+    "codename": "add_periodictask"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 163,
+  "fields": {
+    "name": "Can change periodic task",
+    "content_type": 41,
+    "codename": "change_periodictask"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 164,
+  "fields": {
+    "name": "Can delete periodic task",
+    "content_type": 41,
+    "codename": "delete_periodictask"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 165,
+  "fields": {
+    "name": "Can view periodic task",
+    "content_type": 41,
+    "codename": "view_periodictask"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 166,
+  "fields": {
+    "name": "Can add periodic task track",
+    "content_type": 42,
+    "codename": "add_periodictasks"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 167,
+  "fields": {
+    "name": "Can change periodic task track",
+    "content_type": 42,
+    "codename": "change_periodictasks"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 168,
+  "fields": {
+    "name": "Can delete periodic task track",
+    "content_type": 42,
+    "codename": "delete_periodictasks"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 169,
+  "fields": {
+    "name": "Can view periodic task track",
+    "content_type": 42,
+    "codename": "view_periodictasks"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 170,
+  "fields": {
+    "name": "Can add solar event",
+    "content_type": 43,
+    "codename": "add_solarschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 171,
+  "fields": {
+    "name": "Can change solar event",
+    "content_type": 43,
+    "codename": "change_solarschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 172,
+  "fields": {
+    "name": "Can delete solar event",
+    "content_type": 43,
+    "codename": "delete_solarschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 173,
+  "fields": {
+    "name": "Can view solar event",
+    "content_type": 43,
+    "codename": "view_solarschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 174,
+  "fields": {
+    "name": "Can add clocked",
+    "content_type": 44,
+    "codename": "add_clockedschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 175,
+  "fields": {
+    "name": "Can change clocked",
+    "content_type": 44,
+    "codename": "change_clockedschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 176,
+  "fields": {
+    "name": "Can delete clocked",
+    "content_type": 44,
+    "codename": "delete_clockedschedule"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 177,
+  "fields": {
+    "name": "Can view clocked",
+    "content_type": 44,
+    "codename": "view_clockedschedule"
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$AKxfWMNRpC1XTY9bohlSza$3aTQGimNkquvvoLCWdVTm5/Yi879LHgucoBOfc61Mlc=",
+    "last_login": "2025-09-24T09:46:21.216Z",
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "admin@ee.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-09-24T09:44:30.438Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 1,
+  "fields": {
+    "app_label": "admin",
+    "model": "logentry"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 2,
+  "fields": {
+    "app_label": "auth",
+    "model": "permission"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 3,
+  "fields": {
+    "app_label": "auth",
+    "model": "group"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 4,
+  "fields": {
+    "app_label": "auth",
+    "model": "user"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 5,
+  "fields": {
+    "app_label": "contenttypes",
+    "model": "contenttype"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 6,
+  "fields": {
+    "app_label": "sessions",
+    "model": "session"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 7,
+  "fields": {
+    "app_label": "sites",
+    "model": "site"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 8,
+  "fields": {
+    "app_label": "authtoken",
+    "model": "token"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 9,
+  "fields": {
+    "app_label": "authtoken",
+    "model": "tokenproxy"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 10,
+  "fields": {
+    "app_label": "account_abstraction",
+    "model": "safeoperation"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 11,
+  "fields": {
+    "app_label": "account_abstraction",
+    "model": "safeoperationconfirmation"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 12,
+  "fields": {
+    "app_label": "account_abstraction",
+    "model": "useroperation"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 13,
+  "fields": {
+    "app_label": "account_abstraction",
+    "model": "useroperationreceipt"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 14,
+  "fields": {
+    "app_label": "contracts",
+    "model": "contractabi"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 15,
+  "fields": {
+    "app_label": "contracts",
+    "model": "contract"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 16,
+  "fields": {
+    "app_label": "history",
+    "model": "multisigtransaction"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 17,
+  "fields": {
+    "app_label": "history",
+    "model": "multisigconfirmation"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 18,
+  "fields": {
+    "app_label": "history",
+    "model": "ethereumblock"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 19,
+  "fields": {
+    "app_label": "history",
+    "model": "ethereumtx"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 20,
+  "fields": {
+    "app_label": "history",
+    "model": "internaltx"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 21,
+  "fields": {
+    "app_label": "history",
+    "model": "proxyfactory"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 22,
+  "fields": {
+    "app_label": "history",
+    "model": "safemastercopy"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 23,
+  "fields": {
+    "app_label": "history",
+    "model": "internaltxdecoded"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 24,
+  "fields": {
+    "app_label": "history",
+    "model": "safecontract"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 25,
+  "fields": {
+    "app_label": "history",
+    "model": "safestatus"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 26,
+  "fields": {
+    "app_label": "history",
+    "model": "moduletransaction"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 27,
+  "fields": {
+    "app_label": "history",
+    "model": "safecontractdelegate"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 28,
+  "fields": {
+    "app_label": "history",
+    "model": "erc20transfer"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 29,
+  "fields": {
+    "app_label": "history",
+    "model": "erc721transfer"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 30,
+  "fields": {
+    "app_label": "history",
+    "model": "safelaststatus"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 31,
+  "fields": {
+    "app_label": "history",
+    "model": "indexingstatus"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 32,
+  "fields": {
+    "app_label": "history",
+    "model": "chain"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 33,
+  "fields": {
+    "app_label": "history",
+    "model": "saferelevanttransaction"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 34,
+  "fields": {
+    "app_label": "safe_messages",
+    "model": "safemessage"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 35,
+  "fields": {
+    "app_label": "safe_messages",
+    "model": "safemessageconfirmation"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 36,
+  "fields": {
+    "app_label": "tokens",
+    "model": "token"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 37,
+  "fields": {
+    "app_label": "tokens",
+    "model": "tokenlist"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 38,
+  "fields": {
+    "app_label": "tokens",
+    "model": "tokennotvalid"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 39,
+  "fields": {
+    "app_label": "django_celery_beat",
+    "model": "crontabschedule"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 40,
+  "fields": {
+    "app_label": "django_celery_beat",
+    "model": "intervalschedule"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 41,
+  "fields": {
+    "app_label": "django_celery_beat",
+    "model": "periodictask"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 42,
+  "fields": {
+    "app_label": "django_celery_beat",
+    "model": "periodictasks"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 43,
+  "fields": {
+    "app_label": "django_celery_beat",
+    "model": "solarschedule"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 44,
+  "fields": {
+    "app_label": "django_celery_beat",
+    "model": "clockedschedule"
+  }
+},
+{
+  "model": "sites.site",
+  "pk": 1,
+  "fields": {
+    "domain": "example.com",
+    "name": "example.com"
+  }
+},
+{
+  "model": "contracts.contractabi",
+  "pk": 1,
+  "fields": {
+    "abi": [
+      {
+        "type": "constructor",
+        "inputs": [
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "decimalsValue",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "initialSupply",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "recipient",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "DOMAIN_SEPARATOR",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "allowance",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "spender",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "approve",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "spender",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "value",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "balanceOf",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "account",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "decimals",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint8",
+            "internalType": "uint8"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "eip712Domain",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "fields",
+            "type": "bytes1",
+            "internalType": "bytes1"
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "chainId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "verifyingContract",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "salt",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "extensions",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "mint",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "to",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "name",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "string",
+            "internalType": "string"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "nonces",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "permit",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "spender",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "value",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "deadline",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "v",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "r",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "s",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "symbol",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "string",
+            "internalType": "string"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "totalSupply",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "transfer",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "to",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "value",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "transferFrom",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "from",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "to",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "value",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "Approval",
+        "type": "event",
+        "inputs": [
+          {
+            "name": "owner",
+            "type": "address",
+            "indexed": true,
+            "internalType": "address"
+          },
+          {
+            "name": "spender",
+            "type": "address",
+            "indexed": true,
+            "internalType": "address"
+          },
+          {
+            "name": "value",
+            "type": "uint256",
+            "indexed": false,
+            "internalType": "uint256"
+          }
+        ],
+        "anonymous": false
+      },
+      {
+        "name": "EIP712DomainChanged",
+        "type": "event",
+        "inputs": [],
+        "anonymous": false
+      },
+      {
+        "name": "Transfer",
+        "type": "event",
+        "inputs": [
+          {
+            "name": "from",
+            "type": "address",
+            "indexed": true,
+            "internalType": "address"
+          },
+          {
+            "name": "to",
+            "type": "address",
+            "indexed": true,
+            "internalType": "address"
+          },
+          {
+            "name": "value",
+            "type": "uint256",
+            "indexed": false,
+            "internalType": "uint256"
+          }
+        ],
+        "anonymous": false
+      },
+      {
+        "name": "ECDSAInvalidSignature",
+        "type": "error",
+        "inputs": []
+      },
+      {
+        "name": "ECDSAInvalidSignatureLength",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "length",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "ECDSAInvalidSignatureS",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "s",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      },
+      {
+        "name": "ERC20InsufficientAllowance",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "spender",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "allowance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "needed",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "ERC20InsufficientBalance",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "sender",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "balance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "needed",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "ERC20InvalidApprover",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "approver",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      },
+      {
+        "name": "ERC20InvalidReceiver",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "receiver",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      },
+      {
+        "name": "ERC20InvalidSender",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "sender",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      },
+      {
+        "name": "ERC20InvalidSpender",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "spender",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      },
+      {
+        "name": "ERC2612ExpiredSignature",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "deadline",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "ERC2612InvalidSigner",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "signer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "owner",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      },
+      {
+        "name": "InvalidAccountNonce",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "account",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "currentNonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "InvalidShortString",
+        "type": "error",
+        "inputs": []
+      },
+      {
+        "name": "StringTooLong",
+        "type": "error",
+        "inputs": [
+          {
+            "name": "str",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
+      }
+    ],
+    "description": "ERC20Mintable contract",
+    "relevance": 100,
+    "abi_hash": "0xdbe29fe7e188104c615d04fafe36e8d986599a5561404167bab57bca86f6a05c"
+  }
+},
+{
+  "model": "contracts.contractabi",
+  "pk": 2,
+  "fields": {
+    "abi": [
+      {
+        "type": "constructor",
+        "inputs": [],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "allowance",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "approve",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "guy",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "wad",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "balanceOf",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "decimals",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint8",
+            "internalType": "uint8"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "deposit",
+        "type": "function",
+        "inputs": [],
+        "outputs": [],
+        "stateMutability": "payable"
+      },
+      {
+        "name": "name",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "string",
+            "internalType": "string"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "symbol",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "string",
+            "internalType": "string"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "totalSupply",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "name": "transfer",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "dst",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "wad",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "transferFrom",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "src",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "dst",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "wad",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "withdraw",
+        "type": "function",
+        "inputs": [
+          {
+            "name": "wad",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "name": "Approval",
+        "type": "event",
+        "inputs": [
+          {
+            "name": "src",
+            "type": "address",
+            "indexed": true,
+            "internalType": "address"
+          },
+          {
+            "name": "guy",
+            "type": "address",
+            "indexed": true,
+            "internalType": "address"
+          },
+          {
+            "name": "wad",
+            "type": "uint256",
+            "indexed": false,
+            "internalType": "uint256"
+          }
+        ],
+        "anonymous": false
+      },
+      {
+        "name": "Deposit",
+        "type": "event",
+        "inputs": [
+          {
+            "name": "dst",
+            "type": "address",
+            "indexed": true,
+            "internalType": "address"
+          },
+          {
+            "name": "wad",
+            "type": "uint256",
+            "indexed": false,
+            "internalType": "uint256"
+          }
+        ],
+        "anonymous": false
+      },
+      {
+        "name": "Transfer",
+        "type": "event",
+        "inputs": [
+          {
+            "name": "src",
+            "type": "address",
+            "indexed": true,
+            "internalType": "address"
+          },
+          {
+            "name": "dst",
+            "type": "address",
+            "indexed": true,
+            "internalType": "address"
+          },
+          {
+            "name": "wad",
+            "type": "uint256",
+            "indexed": false,
+            "internalType": "uint256"
+          }
+        ],
+        "anonymous": false
+      },
+      {
+        "name": "Withdrawal",
+        "type": "event",
+        "inputs": [
+          {
+            "name": "src",
+            "type": "address",
+            "indexed": true,
+            "internalType": "address"
+          },
+          {
+            "name": "wad",
+            "type": "uint256",
+            "indexed": false,
+            "internalType": "uint256"
+          }
+        ],
+        "anonymous": false
+      }
+    ],
+    "description": "WKAS contract",
+    "relevance": 100,
+    "abi_hash": "0x6ca2b94fe13760fb16f1ad1e1b4ee7b0c6cee3e814e83e684c9ca060e9b9a0af"
+  }
+},
+{
+  "model": "contracts.contract",
+  "pk": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+  "fields": {
+    "name": "ERC20Mintable",
+    "display_name": "ERC20Mintable",
+    "logo": "",
+    "contract_abi": 1,
+    "trusted_for_delegate_call": false
+  }
+},
+{
+  "model": "contracts.contract",
+  "pk": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+  "fields": {
+    "name": "WKAS",
+    "display_name": "WKAS",
+    "logo": "",
+    "contract_abi": 2,
+    "trusted_for_delegate_call": false
+  }
+},
+{
+  "model": "history.indexingstatus",
+  "pk": 0,
+  "fields": {
+    "block_number": 0
+  }
+},
+{
+  "model": "history.chain",
+  "pk": 31337,
+  "fields": {}
+},
+{
+  "model": "history.proxyfactory",
+  "pk": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  "fields": {
+    "initial_block_number": 0,
+    "tx_block_number": 6
+  }
+},
+{
+  "model": "history.safemastercopy",
+  "pk": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "fields": {
+    "initial_block_number": 0,
+    "tx_block_number": 6,
+    "version": "1.4.1",
+    "deployer": "Safe",
+    "l2": true
+  }
+},
+{
+  "model": "django_celery_beat.intervalschedule",
+  "pk": 1,
+  "fields": {
+    "every": 5,
+    "period": "seconds"
+  }
+},
+{
+  "model": "django_celery_beat.intervalschedule",
+  "pk": 2,
+  "fields": {
+    "every": 15,
+    "period": "seconds"
+  }
+},
+{
+  "model": "django_celery_beat.intervalschedule",
+  "pk": 3,
+  "fields": {
+    "every": 14,
+    "period": "seconds"
+  }
+},
+{
+  "model": "django_celery_beat.crontabschedule",
+  "pk": 1,
+  "fields": {
+    "minute": "*",
+    "hour": "*",
+    "day_of_month": "*",
+    "month_of_year": "*",
+    "day_of_week": "*",
+    "timezone": "UTC"
+  }
+},
+{
+  "model": "django_celery_beat.crontabschedule",
+  "pk": 2,
+  "fields": {
+    "minute": "*/10",
+    "hour": "*",
+    "day_of_month": "*",
+    "month_of_year": "*",
+    "day_of_week": "*",
+    "timezone": "UTC"
+  }
+},
+{
+  "model": "django_celery_beat.crontabschedule",
+  "pk": 3,
+  "fields": {
+    "minute": "0",
+    "hour": "*/2",
+    "day_of_month": "*",
+    "month_of_year": "*",
+    "day_of_week": "*",
+    "timezone": "UTC"
+  }
+},
+{
+  "model": "django_celery_beat.crontabschedule",
+  "pk": 4,
+  "fields": {
+    "minute": "30",
+    "hour": "*/2",
+    "day_of_month": "*",
+    "month_of_year": "*",
+    "day_of_week": "*",
+    "timezone": "UTC"
+  }
+},
+{
+  "model": "django_celery_beat.crontabschedule",
+  "pk": 5,
+  "fields": {
+    "minute": "*/20",
+    "hour": "*",
+    "day_of_month": "*",
+    "month_of_year": "*",
+    "day_of_week": "*",
+    "timezone": "UTC"
+  }
+},
+{
+  "model": "django_celery_beat.crontabschedule",
+  "pk": 6,
+  "fields": {
+    "minute": "0",
+    "hour": "0",
+    "day_of_month": "*",
+    "month_of_year": "*",
+    "day_of_week": "*",
+    "timezone": "UTC"
+  }
+},
+{
+  "model": "django_celery_beat.crontabschedule",
+  "pk": 7,
+  "fields": {
+    "minute": "0",
+    "hour": "*",
+    "day_of_month": "*",
+    "month_of_year": "*",
+    "day_of_week": "*",
+    "timezone": "UTC"
+  }
+},
+{
+  "model": "django_celery_beat.crontabschedule",
+  "pk": 8,
+  "fields": {
+    "minute": "0",
+    "hour": "0",
+    "day_of_month": "*",
+    "month_of_year": "*",
+    "day_of_week": "0",
+    "timezone": "UTC"
+  }
+},
+{
+  "model": "django_celery_beat.crontabschedule",
+  "pk": 9,
+  "fields": {
+    "minute": "0",
+    "hour": "4",
+    "day_of_month": "*",
+    "month_of_year": "*",
+    "day_of_week": "*",
+    "timezone": "UTC"
+  }
+},
+{
+  "model": "django_celery_beat.periodictasks",
+  "pk": 1,
+  "fields": {
+    "last_update": "2025-09-24T09:44:31.903Z"
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 15,
+  "fields": {
+    "name": "celery.backend_cleanup",
+    "task": "celery.backend_cleanup",
+    "interval": null,
+    "crontab": 9,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": 43200,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": null,
+    "total_run_count": 0,
+    "date_changed": "2025-09-24T09:44:07.244Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 16,
+  "fields": {
+    "name": "Check Reorgs (every minute)",
+    "task": "safe_transaction_service.history.tasks.check_reorgs_task",
+    "interval": null,
+    "crontab": 1,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": "2025-09-24T09:53:00.000Z",
+    "total_run_count": 9,
+    "date_changed": "2025-09-24T09:53:12.001Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 17,
+  "fields": {
+    "name": "Check Sync status (every 10 minutes)",
+    "task": "safe_transaction_service.history.tasks.check_sync_status_task",
+    "interval": null,
+    "crontab": 2,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": "2025-09-24T09:50:00.001Z",
+    "total_run_count": 1,
+    "date_changed": "2025-09-24T09:50:11.959Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 18,
+  "fields": {
+    "name": "Index Internal Txs (every 5 seconds)",
+    "task": "safe_transaction_service.history.tasks.index_internal_txs_task",
+    "interval": 1,
+    "crontab": null,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": false,
+    "last_run_at": null,
+    "total_run_count": 0,
+    "date_changed": "2025-09-24T09:44:31.862Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 19,
+  "fields": {
+    "name": "Index Safe events (L2) (every 5 seconds)",
+    "task": "safe_transaction_service.history.tasks.index_safe_events_task",
+    "interval": 1,
+    "crontab": null,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": "2025-09-24T09:53:06.996Z",
+    "total_run_count": 103,
+    "date_changed": "2025-09-24T09:53:11.999Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 20,
+  "fields": {
+    "name": "Index new Proxies (every 15 seconds)",
+    "task": "safe_transaction_service.history.tasks.index_new_proxies_task",
+    "interval": 2,
+    "crontab": null,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": "2025-09-24T09:53:01.890Z",
+    "total_run_count": 34,
+    "date_changed": "2025-09-24T09:53:11.995Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 21,
+  "fields": {
+    "name": "Index ERC20/721 Events (every 14 seconds)",
+    "task": "safe_transaction_service.history.tasks.index_erc20_events_task",
+    "interval": 3,
+    "crontab": null,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": "2025-09-24T09:53:09.897Z",
+    "total_run_count": 37,
+    "date_changed": "2025-09-24T09:53:12.002Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 22,
+  "fields": {
+    "name": "Reindex master copies for the last hours (every 2 hours at minute 0)",
+    "task": "safe_transaction_service.history.tasks.reindex_mastercopies_last_hours_task",
+    "interval": null,
+    "crontab": 3,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": null,
+    "total_run_count": 0,
+    "date_changed": "2025-09-24T09:44:31.875Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 23,
+  "fields": {
+    "name": "Reindex erc20/erc721 for the last hours (every 2 hours at minute 30)",
+    "task": "safe_transaction_service.history.tasks.reindex_erc20_erc721_last_hours_task",
+    "interval": null,
+    "crontab": 4,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": null,
+    "total_run_count": 0,
+    "date_changed": "2025-09-24T09:44:31.880Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 24,
+  "fields": {
+    "name": "Process Internal Txs (every 20 minutes)",
+    "task": "safe_transaction_service.history.tasks.process_decoded_internal_txs_task",
+    "interval": null,
+    "crontab": 5,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": null,
+    "total_run_count": 0,
+    "date_changed": "2025-09-24T09:44:31.884Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 25,
+  "fields": {
+    "name": "Remove older than 1 month not trusted Multisig Txs (every day at 00:00)",
+    "task": "safe_transaction_service.history.tasks.remove_not_trusted_multisig_txs_task",
+    "interval": null,
+    "crontab": 6,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": null,
+    "total_run_count": 0,
+    "date_changed": "2025-09-24T09:44:31.888Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 26,
+  "fields": {
+    "name": "Remove expired Safe Contract Delegates (every hour at minute 0)",
+    "task": "safe_transaction_service.history.tasks.delete_expired_delegates_task",
+    "interval": null,
+    "crontab": 7,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": null,
+    "total_run_count": 0,
+    "date_changed": "2025-09-24T09:44:31.892Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 27,
+  "fields": {
+    "name": "Fix Pool Token Names (every hour at minute 0)",
+    "task": "safe_transaction_service.tokens.tasks.fix_pool_tokens_task",
+    "interval": null,
+    "crontab": 7,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": null,
+    "total_run_count": 0,
+    "date_changed": "2025-09-24T09:44:31.896Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 28,
+  "fields": {
+    "name": "Update Token info from token list (every day at 00:00)",
+    "task": "safe_transaction_service.tokens.tasks.update_token_info_from_token_list_task",
+    "interval": null,
+    "crontab": 6,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": null,
+    "total_run_count": 0,
+    "date_changed": "2025-09-24T09:44:31.900Z",
+    "description": ""
+  }
+},
+{
+  "model": "django_celery_beat.periodictask",
+  "pk": 29,
+  "fields": {
+    "name": "Run query to get number of transactions grouped by safe-app (Every sunday at 00:00)",
+    "task": "safe_transaction_service.analytics.tasks.get_transactions_per_safe_app_task",
+    "interval": null,
+    "crontab": 8,
+    "solar": null,
+    "clocked": null,
+    "args": "[]",
+    "kwargs": "{}",
+    "queue": null,
+    "exchange": null,
+    "routing_key": null,
+    "headers": "{}",
+    "priority": null,
+    "expires": null,
+    "expire_seconds": null,
+    "one_off": false,
+    "start_time": null,
+    "enabled": true,
+    "last_run_at": null,
+    "total_run_count": 0,
+    "date_changed": "2025-09-24T09:44:31.903Z",
+    "description": ""
+  }
+}
+]
