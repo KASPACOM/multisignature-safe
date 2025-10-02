@@ -8,14 +8,10 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: us-east-1
-  CWD: $CURRENT_DIR
 
 jobs:
   build-image-and-push:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: "pkg/example"
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
@@ -54,6 +50,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
+        working-directory: "pkg/example"
         run: |
           DOCKER_BUILDKIT=1 docker build -t $ECR_REPO_URI:latest .
 
