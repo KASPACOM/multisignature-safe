@@ -20,12 +20,6 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v3
 
-      - name: Download dist artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: nest-dist
-          path: ./dist
-
       - name: Set environment variables based on branch
         run: |
           BRANCH_NAME="${GITHUB_REF##*/}"
@@ -66,7 +60,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          DOCKER_BUILDKIT=1 docker build --ssh default --build-arg DIST_PATH=./dist -t $ECR_REPO_URI:latest .
+          DOCKER_BUILDKIT=1 docker build --ssh default -t $ECR_REPO_URI:latest .
 
       - name: Tag Docker image
         run: |
