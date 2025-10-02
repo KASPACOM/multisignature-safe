@@ -11,50 +11,11 @@ env:
   WPD: /home/runner/work/multisignature-safe/pkg/example
 
 jobs:
-  build:
+  build-image-and-push:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: "pkg/example"
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v2
-
-    - name: Set Up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'  # Specify your Node.js version
-
-    # Set up SSH key for accessing GitHub
-    - name: Set up SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan github.com >> ~/.ssh/known_hosts
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        
-    - name: Install Dependencies
-      run: npm install
-
-    - name: Build production for main
-      if: github.ref == 'refs/heads/main'
-      run: npm run build
-
-    - name: Build dev for develop
-      if: github.ref == 'refs/heads/develop'
-      run: npm run build
-
-    - name: Upload dist artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: nest-dist
-        path: dist  
-
-  build-image-and-push:
-    needs: build
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
