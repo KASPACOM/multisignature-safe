@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: "pkg/example"
+        working-directory: "/pkg/example"
     steps:
     - name: Checkout Code
       uses: actions/checkout@v2
