@@ -86,7 +86,7 @@ export class ContractRegistry {
     try {
       const contracts = await this.contractsAPI!.getContracts(options);
 
-      console.log(`📦 Received contracts from API: ${contracts.length}`);
+      console.log(`Received contracts from API: ${contracts.length}`);
 
       // Clear old contracts
       this.contracts.clear();

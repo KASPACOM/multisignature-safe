@@ -333,7 +333,10 @@ const SafeMultisigApp: React.FC = () => {
       });
       console.log("Contracts loaded successfully");
     } catch (error: any) {
-      console.warn("Could not load contracts from API (CORS/network issue). Manual input available.", error.message);
+      console.warn(
+        "Could not load contracts from API (CORS/network issue). Manual input available.",
+        error.message
+      );
       setContractsError("Contracts unavailable (use manual input)");
     } finally {
       setContractsLoading(false);
