@@ -31,9 +31,6 @@ export class NetworkProvider {
   private supportedNetworks: Map<bigint, NetworkConfig> = new Map();
 
   constructor() {
-    if (typeof window !== "undefined" && window.ethereum) {
-      this.detectProvider();
-    }
     this.initializeSupportedNetworks();
   }
 
@@ -158,15 +155,9 @@ export class NetworkProvider {
     if (typeof window !== "undefined" && window.ethereum) {
       wallet = window.ethereum as Eth;
       console.log("NetworkProvider: MetaMask detected");
-
-      const provider = new ethers.BrowserProvider(wallet);
-      this.processEvent({ type: "PROVIDER_DETECTED", provider });
-
-      // Subscribe to MetaMask events
       this.setupEventListeners();
     } else {
       console.log("NetworkProvider: MetaMask not found");
-      this.updateStatus(WalletState.Disconnected);
     }
   }
 
@@ -174,33 +165,11 @@ export class NetworkProvider {
   private setupEventListeners() {
     if (!wallet) return;
 
-    // Account change
-    wallet.on("accountsChanged", (accounts: string[]) => {
-      console.log("NetworkProvider: Accounts changed:", accounts);
-
-      if (accounts.length === 0) {
-        this.processEvent({ type: "DISCONNECTED" });
-      } else {
-        this.processEvent({ type: "ACCOUNT_CHANGED", account: accounts[0] });
-        // After account change, try to reconnect
-        this.refresh();
-      }
-    });
-
-    // Network change
     wallet.on("chainChanged", (chainIdHex: string) => {
       const chainId = BigInt(chainIdHex);
       console.log("NetworkProvider: Network changed:", chainId.toString());
-
       this.processEvent({ type: "NETWORK_CHANGED", chainId });
-      // After network change, try to reconnect
       this.refresh();
-    });
-
-    // Disconnect
-    wallet.on("disconnect", () => {
-      console.log("NetworkProvider: Disconnect");
-      this.processEvent({ type: "DISCONNECTED" });
     });
   }
 
@@ -211,7 +180,6 @@ export class NetworkProvider {
     this.processEvent({ type: "CONNECT_REQUESTED" });
 
     try {
-      // Update wallet in case it became available
       if (typeof window !== "undefined" && window.ethereum) {
         wallet = window.ethereum as Eth;
       }
@@ -220,15 +188,33 @@ export class NetworkProvider {
         throw new Error("MetaMask not installed!");
       }
 
-      // Create provider and get access to accounts
+      console.log("NetworkProvider: Checking existing accounts...");
+      let accounts: string[] = [];
+      try {
+        accounts = (await wallet.request({
+          method: "eth_accounts",
+          params: [],
+        })) as string[];
+        console.log("NetworkProvider: Existing accounts:", accounts.length);
+      } catch (e) {
+        console.log("NetworkProvider: No existing accounts");
+      }
+
+      if (accounts.length === 0) {
+        console.log("NetworkProvider: Requesting accounts...");
+        accounts = (await wallet.request({
+          method: "eth_requestAccounts",
+          params: [],
+        })) as string[];
+        console.log("NetworkProvider: Accounts granted:", accounts.length);
+      }
+
       const provider = new ethers.BrowserProvider(wallet);
 
-      // Request access to accounts
-      await provider.send("eth_requestAccounts", []);
-
-      // Get signer and network information
       const signer = await provider.getSigner();
+      console.log("NetworkProvider: Signer:", signer);
       const network = await provider.getNetwork();
+      console.log("NetworkProvider: Network:", network);
       const account = await signer.getAddress();
 
       console.log("NetworkProvider: Connection successful:", {
@@ -236,18 +222,18 @@ export class NetworkProvider {
         account,
       });
 
-      // Check if network is supported
       if (!this.supportedNetworks.has(network.chainId)) {
         throw new Error(`Network ${network.chainId} not supported`);
       }
 
-      // Create Network object
       const networkInstance: Network = {
         id: network.chainId,
         provider: provider,
         signer,
-        eip1193Provider: wallet, // Save original window.ethereum
+        eip1193Provider: wallet,
       };
+
+      this.setupEventListeners();
 
       this.processEvent({
         type: "CONNECTION_SUCCESS",
@@ -273,22 +259,15 @@ export class NetworkProvider {
     console.log("NetworkProvider: Update connection...");
 
     try {
-      // Update wallet in case it changed
-      if (typeof window !== "undefined" && window.ethereum) {
-        wallet = window.ethereum as Eth;
-      }
-
-      if (!wallet) {
-        this.processEvent({ type: "DISCONNECTED" });
+      if (typeof window === "undefined" || !window.ethereum) {
         return null;
       }
 
+      wallet = window.ethereum as Eth;
       const provider: BrowserProvider = new ethers.BrowserProvider(wallet);
 
-      // Check if there are connected accounts
       const accounts = await provider.listAccounts();
       if (accounts.length === 0) {
-        this.processEvent({ type: "DISCONNECTED" });
         return null;
       }
 
@@ -296,7 +275,6 @@ export class NetworkProvider {
       const network = await provider.getNetwork();
       const account = await signer.getAddress();
 
-      // Check if network is supported
       if (!this.supportedNetworks.has(network.chainId)) {
         this.processEvent({
           type: "CONNECTION_ERROR",
@@ -309,7 +287,7 @@ export class NetworkProvider {
         id: network.chainId,
         provider: provider,
         signer,
-        eip1193Provider: wallet, // Save original window.ethereum
+        eip1193Provider: wallet,
       };
 
       this.processEvent({
@@ -321,12 +299,6 @@ export class NetworkProvider {
       return networkInstance;
     } catch (error: any) {
       console.error("NetworkProvider: Update error:", error);
-
-      this.processEvent({
-        type: "CONNECTION_ERROR",
-        error: error.message || "Update error",
-      });
-
       return null;
     }
   }

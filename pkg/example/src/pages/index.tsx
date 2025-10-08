@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount, useWalletClient } from "wagmi";
 
 import SafeOnChain, {
   UniversalFunctionCall,
@@ -14,14 +16,14 @@ import { ContractInfo } from "../components/TokenInfo";
 import SafeOffChain, { UniversalOperationResult } from "../lib/offchain";
 import { formatAddress, DEFAULT_SAFE_VERSION } from "../lib/safe-common";
 import { NETWORK_COLORS, getSupportedNetworks } from "../lib/constants";
-import { Network, WalletState, ConnectionStatus } from "../lib/network-types";
-import { networkProvider } from "../lib/network-provider";
+import { Network } from "../lib/network-types";
 import {
   ContractABI,
   ParsedFunction,
   FunctionFormData,
 } from "../lib/contract-types";
 import { contractRegistry } from "../lib/contract-registry";
+import { createNetworkFromWagmi } from "../lib/wagmi-adapter";
 
 interface SafeInfo {
   address: string;
@@ -54,17 +56,15 @@ enum AppSection {
 }
 
 const SafeMultisigApp: React.FC = () => {
-  // Network connection state
+  const { address, isConnected, chain } = useAccount();
+  const { data: walletClient } = useWalletClient();
+
+  const [mounted, setMounted] = useState(false);
   const [network, setNetwork] = useState<Network | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
-    state: WalletState.Disconnected,
-    isLoading: false,
-  });
-  const [userAddress, setUserAddress] = useState<string>("");
 
   // Section management state
   const [currentSection, setCurrentSection] = useState<AppSection>(
-    AppSection.PROPOSALS
+    AppSection.CREATE_PROPOSAL
   );
 
   // Safe state
@@ -114,40 +114,41 @@ const SafeMultisigApp: React.FC = () => {
 
   // Class instances
   const [safeOnChain, setSafeOnChain] = useState<SafeOnChain | null>(null);
-  const [safeOffChain] = useState(() => new SafeOffChain());
+  const [safeOffChain, setSafeOffChain] = useState<SafeOffChain | null>(null);
 
-  // Initialization on load
   useEffect(() => {
-    // Subscribe to NetworkProvider status changes
-    const unsubscribe = networkProvider.onStatusChange(
-      (status: ConnectionStatus) => {
-        console.log("React: Status update:", status);
-
-        setConnectionStatus(status);
-
-        if (status.network) {
-          setNetwork(status.network);
-        } else {
-          setNetwork(null);
-        }
-
-        if (status.account) {
-          setUserAddress(status.account);
-        } else {
-          setUserAddress("");
-          // Return to main section on disconnect
-          setCurrentSection(AppSection.CREATE_PROPOSAL);
-        }
-      }
-    );
-
-    // Check current state on load
-    initializeApp();
-
-    return () => {
-      unsubscribe();
-    };
+    setMounted(true);
+    setSafeOffChain(new SafeOffChain());
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const setupNetwork = async () => {
+      if (isConnected && address && chain && walletClient) {
+        try {
+          const provider = new ethers.BrowserProvider(walletClient);
+          const signer = await provider.getSigner();
+
+          const networkInstance = createNetworkFromWagmi(
+            provider,
+            signer,
+            chain.id,
+            walletClient
+          );
+
+          setNetwork(networkInstance);
+          console.log("Network setup:", chain.id, address);
+        } catch (error) {
+          console.error("Network setup error:", error);
+        }
+      } else {
+        setNetwork(null);
+      }
+    };
+
+    setupNetwork();
+  }, [mounted, isConnected, address, chain, walletClient]);
 
   // Update safeOnChain on Network change
   useEffect(() => {
@@ -302,25 +303,6 @@ const SafeMultisigApp: React.FC = () => {
     };
   };
 
-  // Application initialization
-  const initializeApp = async () => {
-    console.log("React: Application initialization...");
-
-    try {
-      // Check current state and try to reconnect
-      const currentNetwork = await networkProvider.refresh();
-      console.log("React: Initialization completed:", {
-        hasNetwork: !!currentNetwork,
-        networkId: currentNetwork?.id?.toString(),
-      });
-    } catch (error) {
-      console.error("React: Initialization error:", error);
-    }
-  };
-
-  // Wallet event handlers (now through NetworkProvider)
-  // Not needed - NetworkProvider handles this automatically
-
   // State management functions
   const setLoadingState = (key: string, value: boolean) => {
     setLoading((prev) => ({ ...prev, [key]: value }));
@@ -344,32 +326,17 @@ const SafeMultisigApp: React.FC = () => {
     setContractsError(null);
 
     try {
-      console.log("📦 Starting contract loading from API...");
+      console.log("Starting contract loading from API...");
       await contractRegistry.loadContracts({
-        limit: 100, // Load first 100 contracts
-        trusted: true, // Only trusted contracts
+        limit: 100,
+        trusted: true,
       });
       console.log("Contracts loaded successfully");
     } catch (error: any) {
-      console.error("Contract loading error:", error);
-      setContractsError(error.message);
-      showError(`Failed to load contracts: ${error.message}`);
+      console.warn("Could not load contracts from API (CORS/network issue). Manual input available.", error.message);
+      setContractsError("Contracts unavailable (use manual input)");
     } finally {
       setContractsLoading(false);
-    }
-  };
-
-  // 1. Wallet connection through NetworkProvider
-  const handleConnectWallet = async () => {
-    console.log("React: Attempting wallet connection...");
-
-    try {
-      const connectedNetwork = await networkProvider.connect();
-      showSuccess(
-        `Wallet connected successfully! Network: ${connectedNetwork.id.toString()}`
-      );
-    } catch (error) {
-      showError(error instanceof Error ? error.message : "Connection error");
     }
   };
 
@@ -486,7 +453,7 @@ const SafeMultisigApp: React.FC = () => {
 
     setLoadingState("predictAddress", true);
     try {
-      console.log("🔮 Predicting Safe address by form:", formData);
+      console.log("Predicting Safe address by form:", formData);
 
       const predictedAddress = await safeOnChain.getSafeAddressByForm(formData);
       setPredictedSafeAddress(predictedAddress);
@@ -520,7 +487,7 @@ const SafeMultisigApp: React.FC = () => {
       console.log("Creating structured transaction...");
 
       const nextNonce = await getHighestNonce();
-      console.log("📍 Using next nonce for transaction:", nextNonce);
+      console.log("Using next nonce for transaction:", nextNonce);
 
       const result = await safeOnChain.createStructuredTransactionHash(
         selectedContract.address,
@@ -612,7 +579,7 @@ const SafeMultisigApp: React.FC = () => {
         try {
           valueInWei = ethers.parseEther(universalForm.ethValue.toString());
           console.log(
-            "💰 Converting user ETH input to wei (manual mode):",
+            "Converting user ETH input to wei (manual mode):",
             universalForm.ethValue,
             "→",
             valueInWei.toString()
@@ -639,7 +606,7 @@ const SafeMultisigApp: React.FC = () => {
       console.log("Creating universal transaction hash for:", functionCall);
 
       const nextNonce = await getHighestNonce();
-      console.log("📍 Using next nonce for transaction:", nextNonce);
+      console.log("Using next nonce for transaction:", nextNonce);
 
       // Create transaction hash through SafeOnChain
       const result = await safeOnChain.createUniversalTransactionHash(
@@ -677,7 +644,7 @@ const SafeMultisigApp: React.FC = () => {
       return;
     }
 
-    console.log("📤 Sending signed transaction to STS...");
+    console.log("Sending signed transaction to STS...");
 
     // Check if transaction exists in STS
     try {
@@ -832,7 +799,7 @@ const SafeMultisigApp: React.FC = () => {
       };
 
       setSignatureResult(newSignatureResult);
-      console.log("📦 EIP-712 signature created:", newSignatureResult);
+      console.log("EIP-712 signature created:", newSignatureResult);
 
       // 5. Send signature to STS (handles everything internally)
       try {
@@ -928,21 +895,24 @@ const SafeMultisigApp: React.FC = () => {
     showSuccess("Disconnected from Safe");
   };
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🧩 Safe Multisig Manager
+            Safe Multisig Manager
           </h1>
           <p className="text-gray-600">
             Safe multisig wallet creation and management
           </p>
         </div>
 
-        {/* Section navigation */}
-        {network && userAddress && (
+        {network && address && (
           <div className="mb-8 flex justify-center">
             <div className="bg-white rounded-lg shadow p-1 flex">
               <button
@@ -985,33 +955,21 @@ const SafeMultisigApp: React.FC = () => {
         {/* MAIN SECTION */}
         {currentSection === AppSection.CREATE_PROPOSAL && (
           <>
-            {/* Connection status */}
             <div className="mb-8 p-6 bg-white rounded-lg shadow">
               <h2 className="text-xl font-semibold mb-4">Connection</h2>
 
-              {connectionStatus.state !== WalletState.Connected ? (
+              {!isConnected ? (
                 <div className="space-y-4">
-                  <button
-                    onClick={handleConnectWallet}
-                    disabled={connectionStatus.isLoading}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {connectionStatus.isLoading
-                      ? "Connecting..."
-                      : "Connect Wallet"}
-                  </button>
-
-                  {/* Show connection status */}
-                  {connectionStatus.state !== WalletState.Disconnected && (
-                    <div className="text-sm text-gray-600">
-                      Status: {connectionStatus.state}
-                      {connectionStatus.error && (
-                        <div className="text-red-600 mt-1">
-                          {connectionStatus.error}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <ConnectButton.Custom>
+                    {({ openConnectModal }) => (
+                      <button
+                        onClick={openConnectModal}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        Connect Wallet
+                      </button>
+                    )}
+                  </ConnectButton.Custom>
 
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                     <h3 className="text-sm font-medium text-gray-700 mb-2">
@@ -1036,7 +994,17 @@ const SafeMultisigApp: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p>Connected wallet: {formatAddress(userAddress)}</p>
+                  <p>Connected wallet: {formatAddress(address || "")}</p>
+                  <ConnectButton.Custom>
+                    {({ openAccountModal }) => (
+                      <button
+                        onClick={openAccountModal}
+                        className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                      >
+                        Manage Wallet
+                      </button>
+                    )}
+                  </ConnectButton.Custom>
                 </div>
               )}
             </div>
@@ -1093,7 +1061,8 @@ const SafeMultisigApp: React.FC = () => {
                     {safeInfo.owners.map((owner, index) => (
                       <li key={index} className="text-sm font-mono">
                         {formatAddress(owner)}
-                        {owner.toLowerCase() === userAddress.toLowerCase() && (
+                        {owner.toLowerCase() ===
+                          (address || "").toLowerCase() && (
                           <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
                             You
                           </span>
@@ -1115,7 +1084,7 @@ const SafeMultisigApp: React.FC = () => {
                   loading={loading.createSafe}
                   predicting={loading.predictAddress}
                   predictedAddress={predictedSafeAddress}
-                  userAddress={userAddress}
+                  userAddress={address || ""}
                   className="mb-8"
                 />
               )}
@@ -1672,11 +1641,10 @@ const SafeMultisigApp: React.FC = () => {
           </>
         )}
 
-        {/* PROPOSAL MANAGEMENT SECTION */}
         {currentSection === AppSection.PROPOSALS && (
           <ProposalsPage
             network={network}
-            userAddress={userAddress}
+            userAddress={address || ""}
             safeOnChain={safeOnChain}
             safeOffChain={safeOffChain}
             safeInfo={safeInfo}

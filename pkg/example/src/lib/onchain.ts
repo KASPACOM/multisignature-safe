@@ -120,7 +120,7 @@ export class SafeOnChain {
     try {
       const safeSdk = await Safe.init(safeConfig);
       const predictedAddress = await safeSdk.getAddress();
-      console.log("📍 Predicted Safe address:", predictedAddress);
+      console.log("Predicted Safe address:", predictedAddress);
 
       const existingCode = await this.network.provider.getCode(
         predictedAddress

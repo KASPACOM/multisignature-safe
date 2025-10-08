@@ -104,11 +104,11 @@ export const WALLET_TRANSITIONS: StateTransition[] = [
     to: WalletState.Connected,
     trigger: "CONNECTION_SUCCESS",
   },
-  {
-    from: WalletState.Connecting,
-    to: WalletState.Disconnected,
-    trigger: "CONNECTION_ERROR",
-  },
+  // {
+  //   from: WalletState.Connecting,
+  //   to: WalletState.Disconnected,
+  //   trigger: "CONNECTION_ERROR",
+  // },
   {
     from: WalletState.Connecting,
     to: WalletState.Disconnected,
