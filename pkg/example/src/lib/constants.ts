@@ -13,7 +13,7 @@ export interface NetworkConfig {
   chainId: number;
   name: string;
   rpcUrl: string;
-  stsUrl?: string;
+  stsUrl: string;
   contracts: NetworkContracts;
 }
 // Configurations for different networks
@@ -41,7 +41,7 @@ export const NETWORK_CONFIGS: Record<number, NetworkConfig> = {
     chainId: 167012,
     name: "Kasplex Testnet",
     rpcUrl: "https://rpc.kspr.bot/kasplex/testnet",
-    stsUrl: process.env.NEXT_PUBLIC_STS_URL,
+    stsUrl: "https://dev-sts.kaspa.com",
     contracts: {
       safeL2Singleton: "0x5a2b478CBd6Ad0ac28A3eBAF7D9A782a4a50AdEE",
       safeProxyFactory: "0x04Ac3D0eB50762b12715ED745a5cbe20679fB8d8",

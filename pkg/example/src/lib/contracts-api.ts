@@ -32,7 +32,7 @@ export class ContractsAPI {
 
   constructor(chainId: bigint) {
     const config = getNetworkConfig(Number(chainId));
-    this.baseUrl = config.stsUrl || "http://localhost:8000";
+    this.baseUrl = config.stsUrl;
   }
 
   /**
