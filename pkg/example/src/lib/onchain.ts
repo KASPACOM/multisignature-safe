@@ -16,6 +16,8 @@ import {
   createContractNetworksConfig,
   DEFAULT_SAFE_VERSION,
 } from "./safe-common";
+import { getNetworkConfig, NetworkConfig } from "./constants";
+import { ContractNetworksConfig } from "@safe-global/protocol-kit";
 import { SafeOffChain, UniversalOperationResult } from "./offchain";
 import { Network } from "./network-types";
 import { ParsedFunction, FunctionFormData } from "./contract-types";
@@ -61,13 +63,15 @@ interface ExecuteTransactionResponse {
 
 export class SafeOnChain {
   private network: Network;
-  private networkConfig = getCurrentNetworkConfig();
-  private contractNetworks = createContractNetworksConfig(this.networkConfig);
+  private networkConfig: NetworkConfig;
+  private contractNetworks: ContractNetworksConfig;
   private safeSdk: Safe | null = null;
   currentSafeAddress: string | null = null;
 
   constructor(network: Network) {
     this.network = network;
+    this.networkConfig = getNetworkConfig(Number(network.id));
+    this.contractNetworks = createContractNetworksConfig(this.networkConfig);
   }
 
   private sortOwners(owners: string[]): string[] {
