@@ -294,7 +294,7 @@ const UserProposals: React.FC<UserProposalsProps> = ({
     proposal: UserProposal,
     action: ProposalAction
   ) => {
-    console.log(`🎬 Proposal action: ${action}`, proposal.safeTxHash);
+    console.log(`Proposal action: ${action}`, proposal.safeTxHash);
 
     // Set loading state for this proposal
     if (action === ProposalAction.SIGN) {
