@@ -120,7 +120,7 @@ export class SafeOnChain {
     try {
       const safeSdk = await Safe.init(safeConfig);
       const predictedAddress = await safeSdk.getAddress();
-      console.log("📍 Predicted Safe address:", predictedAddress);
+      console.log("Predicted Safe address:", predictedAddress);
 
       const existingCode = await this.network.provider.getCode(
         predictedAddress
@@ -434,7 +434,7 @@ export class SafeOnChain {
     console.log("Transaction params:", transactionParams);
 
     if (nonce !== undefined) {
-      console.log("📍 Using specified nonce:", nonce);
+      console.log("Using specified nonce:", nonce);
     }
 
     const metaTransactionData: MetaTransactionData = {
@@ -485,7 +485,7 @@ export class SafeOnChain {
     const nonceFromSTS = txFromSTS.nonce
       ? parseInt(txFromSTS.nonce.toString())
       : undefined;
-    console.log("📍 Using nonce from STS:", nonceFromSTS);
+    console.log("Using nonce from STS:", nonceFromSTS);
 
     const safeTransaction = await this.createSafeTransaction(
       {

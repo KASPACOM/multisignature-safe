@@ -32,7 +32,7 @@ interface ProposalsPageProps {
   network: Network | null;
   userAddress: string;
   safeOnChain: SafeOnChain | null;
-  safeOffChain: SafeOffChain;
+  safeOffChain: SafeOffChain | null;
   safeInfo: SafeInfo | null;
   setSafeInfo: (info: SafeInfo | null) => void;
   showError: (message: string) => void;
@@ -76,6 +76,8 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
 
   // Load user proposals statistics
   const loadUserProposalsStats = async (address: string) => {
+    if (!safeOffChain) return;
+
     console.log("Loading proposals statistics for:", address);
     setStatsLoading(true);
 
@@ -108,6 +110,8 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
 
   // Load Safe contracts without proposals
   const loadSafesWithoutProposals = async (address: string) => {
+    if (!safeOffChain) return;
+
     console.log("Loading Safe contracts without proposals for:", address);
     setSafesLoading(true);
 
@@ -129,7 +133,12 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
     proposal: UserProposal,
     action: ProposalAction
   ) => {
-    console.log(`🎬 User proposal action: ${action}`, proposal.safeTxHash);
+    if (!safeOffChain) {
+      showError("SafeOffChain not initialized");
+      return;
+    }
+
+    console.log(`User proposal action: ${action}`, proposal.safeTxHash);
 
     try {
       switch (action) {
@@ -212,7 +221,7 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
               try {
                 valueFromSTS = BigInt(stsTransaction.value);
                 console.log(
-                  "💰 Converting value from STS to BigInt for signing:",
+                  "Converting value from STS to BigInt for signing:",
                   stsTransaction.value,
                   "→",
                   valueFromSTS.toString()
@@ -398,6 +407,11 @@ const ProposalsPage: React.FC<ProposalsPageProps> = ({
 
   // Handle Safe contract click
   const handleSafeClick = async (safeAddress: string) => {
+    if (!safeOffChain) {
+      showError("SafeOffChain not initialized");
+      return;
+    }
+
     console.log("Safe contract click:", safeAddress);
 
     try {

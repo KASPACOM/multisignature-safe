@@ -108,7 +108,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
       {selectedFunction.payable && (
         <div className="space-y-2 p-4 bg-green-50 border border-green-200 rounded-lg">
           <label className="block text-sm font-medium text-green-800">
-            💰 ETH Value (optional)
+            ETH Value (optional)
           </label>
           <input
             type="text"
